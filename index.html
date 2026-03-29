@@ -248,7 +248,7 @@ input[data-color="rose"]::-moz-range-thumb{border-color:var(--rose);background:v
 .add-btn:hover{border-color:var(--blue);color:var(--blue);background:var(--blue-g)}
 
 /* ═══ NOTES ═══ */
-.notes-area{width:100%;min-height:60px;resize:vertical;font-family:inherit;font-size:12.5px;padding:10px;border-radius:9px;border:1px solid var(--b1);background:var(--input-bg);color:var(--t1);line-height:1.5;outline:none;transition:border-color .15s}
+.notes-area{width:100%;min-height:44px;resize:none;overflow:hidden;font-family:inherit;font-size:12.5px;padding:10px;border-radius:9px;border:1px solid var(--b1);background:var(--input-bg);color:var(--t1);line-height:1.5;outline:none;transition:border-color .15s}
 .notes-area:focus{border-color:var(--blue)}
 .notes-area::placeholder{color:var(--t3)}
 
@@ -374,10 +374,12 @@ input[data-color="rose"]::-moz-range-thumb{border-color:var(--rose);background:v
 .coach-msg{font-size:12.5px;line-height:1.6;color:var(--t1)}
 .coach-dismiss{position:absolute;top:8px;right:8px;background:none;border:none;color:var(--t3);cursor:pointer;font-size:14px;padding:2px 6px;border-radius:4px;-webkit-tap-highlight-color:transparent}
 .coach-dismiss:hover{background:rgba(0,0,0,.05)}
-.coach-actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
-.coach-action-btn{padding:6px 14px;border-radius:8px;border:1.5px solid var(--b2);background:var(--l1);color:var(--t1);font-size:11.5px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;-webkit-tap-highlight-color:transparent}
-.coach-action-btn:hover{border-color:var(--blue);color:var(--blue)}
-.coach-action-btn.active{background:var(--blue);color:#fff;border-color:var(--blue)}
+.coach-expand{margin-top:8px;border-radius:8px;overflow:hidden}
+.coach-expand summary{padding:8px 12px;background:var(--l1);border:1px solid var(--b1);border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;list-style:none;-webkit-tap-highlight-color:transparent;transition:background .15s;color:var(--t1)}
+.coach-expand summary::-webkit-details-marker{display:none}
+.coach-expand summary:hover{background:var(--l2)}
+.coach-expand[open] summary{border-radius:8px 8px 0 0;border-bottom:none}
+.coach-expand>div{padding:12px;background:var(--l1);border:1px solid var(--b1);border-top:none;border-radius:0 0 8px 8px}
 /* Breathing circle */
 .breath-container{text-align:center;padding:16px 0}
 .breath-circle{width:100px;height:100px;border-radius:50%;margin:0 auto 12px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:#fff;transition:transform .3s ease,background .3s ease}
@@ -957,12 +959,15 @@ const MILD_MSGS=[
   "Mild reading. A good moment to log and move on.",
   "Steady. Your awareness is your strength."
 ];
-const MOD_TIPS=[
-  "Stay hydrated — drink a glass of water now.",
-  "A gentle 10-minute walk can help reset your nervous system.",
-  "Step away from screens for a few minutes.",
+const ACTION_SUGGESTIONS=[
+  "Go for a gentle walk — movement helps reset your nervous system.",
+  "Drink a glass of water — stay hydrated.",
+  "Step away from screens for 10 minutes.",
+  "Lie down, dim the lights, close your eyes for 5 minutes.",
+  "Put on background sounds (rain, white noise) to mask the tinnitus.",
   "Check your posture — tension in your neck and jaw amplifies symptoms.",
-  "Try putting on background sounds (rain, white noise) to soften the tinnitus."
+  "Try a warm compress on your neck and behind your ear.",
+  "Step outside for fresh air, even for 2 minutes."
 ];
 const BREATHINGS=[
   {name:'4-7-8 Breathing',steps:[{phase:'inhale',label:'Breathe in',sec:4},{phase:'hold',label:'Hold',sec:7},{phase:'exhale',label:'Breathe out',sec:8}],cycles:4},
@@ -984,10 +989,12 @@ function showCoachCard(score){
     return;
   }
   if(score<=20){
-    // Moderate — tip + suggestion
+    // Moderate — reassurance + action
     const card=document.createElement('div');card.className='coach-card moderate';
-    const tip=MOD_TIPS[Math.floor(Math.random()*MOD_TIPS.length)];
-    card.innerHTML='<button class="coach-dismiss" onclick="dismissCoach()">×</button><div class="coach-title">💛 Moderate symptoms</div><div class="coach-msg">'+sanitizeText(tip)+'</div>';
+    let ri=Math.floor(Math.random()*REASSURANCES.length);
+    if(ri===lastReassuranceIdx)ri=(ri+1)%REASSURANCES.length;lastReassuranceIdx=ri;
+    const action=ACTION_SUGGESTIONS[Math.floor(Math.random()*ACTION_SUGGESTIONS.length)];
+    card.innerHTML='<button class="coach-dismiss" onclick="dismissCoach()">×</button><div class="coach-title">💛 Moderate symptoms</div><div class="coach-msg">'+sanitizeText(REASSURANCES[ri])+'</div><div class="coach-msg" style="margin-top:8px;font-weight:600">💡 '+sanitizeText(action)+'</div>';
     container.appendChild(card);
     return;
   }
@@ -1000,54 +1007,48 @@ function showCoachCard(score){
   lastReassuranceIdx=ri;
   let html='<button class="coach-dismiss" onclick="dismissCoach()">×</button>';
   html+='<div class="coach-title">'+(isSevere?'🔴 High distress — let me help':'🟠 Elevated symptoms')+'</div>';
-  html+='<div class="coach-msg" style="margin-bottom:10px">'+sanitizeText(REASSURANCES[ri])+'</div>';
-  html+='<div class="coach-actions">';
-  html+='<button class="coach-action-btn" onclick="startBreathing()">🫁 Breathing exercise</button>';
-  if(isSevere)html+='<button class="coach-action-btn" onclick="showGrounding()">🧘 5-4-3-2-1 Grounding</button>';
-  html+='</div>';
-  html+='<div id="coachExerciseArea"></div>';
+  const action=ACTION_SUGGESTIONS[Math.floor(Math.random()*ACTION_SUGGESTIONS.length)];
+  html+='<div class="coach-msg" style="margin-bottom:6px">'+sanitizeText(REASSURANCES[ri])+'</div>';
+  html+='<div class="coach-msg" style="margin-bottom:10px;font-weight:600">💡 '+sanitizeText(action)+'</div>';
+  html+='<details class="coach-expand"><summary>🫁 Breathing Exercise — tap to start</summary><div id="coachBreathArea"></div></details>';
+  html+='<details class="coach-expand"><summary>🧘 5-4-3-2-1 Grounding — tap to open</summary><div id="coachGroundArea"></div></details>';
   card.innerHTML=html;
   container.appendChild(card);
+  // Auto-render content when details are opened
+  card.querySelectorAll('details').forEach(d=>{
+    d.addEventListener('toggle',()=>{
+      if(!d.open)return;
+      const breathArea=d.querySelector('#coachBreathArea');
+      const groundArea=d.querySelector('#coachGroundArea');
+      if(breathArea&&!breathArea.hasChildNodes())renderBreathingInto(breathArea);
+      if(groundArea&&!groundArea.hasChildNodes())renderGroundingInto(groundArea);
+    });
+  });
 }
 
-window.startBreathing=function(){
-  const area=document.getElementById('coachExerciseArea');if(!area)return;
+function renderBreathingInto(area){
   const ex=BREATHINGS[Math.floor(Math.random()*BREATHINGS.length)];
-  area.innerHTML='<div class="breath-container"><div class="breath-circle inhale" id="breathCircle">Ready</div><div class="breath-step" id="breathStep">'+sanitizeText(ex.name)+' — tap to begin</div></div>';
+  area.innerHTML='<div class="breath-container"><div class="breath-circle inhale" id="breathCircle">Tap to start</div><div class="breath-step" id="breathStep">'+sanitizeText(ex.name)+'</div></div>';
   const circle=document.getElementById('breathCircle');
   const stepEl=document.getElementById('breathStep');
-  let started=false;
-  circle.style.cursor='pointer';
-  circle.addEventListener('click',function go(){
+  let started=false;circle.style.cursor='pointer';
+  circle.addEventListener('click',function(){
     if(started)return;started=true;circle.style.cursor='default';
     let cycle=0,stepIdx=0;
     function runStep(){
-      if(cycle>=ex.cycles){
-        circle.className='breath-circle inhale';circle.textContent='Done';
-        stepEl.textContent='Well done. Take a moment before moving on.';
-        area.insertAdjacentHTML('beforeend','<div class="breath-done">✓ '+ex.cycles+' cycles complete</div>');
-        return;
-      }
-      const s=ex.steps[stepIdx];
-      circle.className='breath-circle '+s.phase;
-      circle.textContent=s.label;
-      stepEl.textContent='Cycle '+(cycle+1)+' of '+ex.cycles;
+      if(cycle>=ex.cycles){circle.className='breath-circle inhale';circle.textContent='Done';stepEl.textContent='Well done. Take a moment before moving on.';area.insertAdjacentHTML('beforeend','<div class="breath-done">✓ '+ex.cycles+' cycles complete</div>');return}
+      const s=ex.steps[stepIdx];circle.className='breath-circle '+s.phase;circle.textContent=s.label;stepEl.textContent='Cycle '+(cycle+1)+' of '+ex.cycles;
       let countdown=s.sec;
-      function tick(){
-        if(countdown<=0){stepIdx++;if(stepIdx>=ex.steps.length){stepIdx=0;cycle++}runStep();return}
-        circle.textContent=s.label+' ('+countdown+')';
-        countdown--;breathingTimer=setTimeout(tick,1000);
-      }
+      function tick(){if(countdown<=0){stepIdx++;if(stepIdx>=ex.steps.length){stepIdx=0;cycle++}runStep();return}circle.textContent=s.label+' ('+countdown+')';countdown--;breathingTimer=setTimeout(tick,1000)}
       tick();
     }
     runStep();
   },{once:true});
-};
+}
 
-window.showGrounding=function(){
-  const area=document.getElementById('coachExerciseArea');if(!area)return;
-  area.innerHTML='<div style="margin-top:10px"><div class="coach-title">🧘 5-4-3-2-1 Grounding</div><div class="coach-msg">Focus on your senses to anchor yourself in the present:</div><ul class="ground-steps"><li><span>👁️</span> <b>5</b> things you can see</li><li><span>✋</span> <b>4</b> things you can touch right now</li><li><span>👂</span> <b>3</b> sounds you can hear (other than tinnitus)</li><li><span>👃</span> <b>2</b> things you can smell</li><li><span>👅</span> <b>1</b> thing you can taste</li></ul><div class="coach-msg" style="margin-top:8px;font-style:italic">Take your time with each one. There is no rush.</div></div>';
-};
+function renderGroundingInto(area){
+  area.innerHTML='<div class="coach-msg">Focus on your senses to anchor yourself in the present:</div><ul class="ground-steps"><li><span>👁️</span> <b>5</b> things you can see</li><li><span>✋</span> <b>4</b> things you can touch right now</li><li><span>👂</span> <b>3</b> sounds you can hear (other than tinnitus)</li><li><span>👃</span> <b>2</b> things you can smell</li><li><span>👅</span> <b>1</b> thing you can taste</li></ul><div class="coach-msg" style="margin-top:8px;font-style:italic">Take your time with each one. There is no rush.</div>';
+}
 
 window.dismissCoach=function(){
   if(breathingTimer){clearTimeout(breathingTimer);breathingTimer=null}
@@ -1075,7 +1076,7 @@ function loadDailyFieldsIntoForm(){
     if(entry.medications&&entry.medications.length)entry.medications.forEach(m=>addMedBlock(m));
     if(entry.interventions&&entry.interventions.length)entry.interventions.forEach(iv=>addInterventionBlock(iv));
     if(entry.notes)document.getElementById('notesField').value=entry.notes;
-    lockNotesIfNeeded();
+    autoResizeNotes();lockNotesIfNeeded();
   }else{
     // New day — carry forward meds, exercise, interventions from previous day
     const prev=getPreviousDayEntry();
@@ -1129,7 +1130,8 @@ window.selectSleep=function(btn){
 
 // Notes lock: once saved, lock notes to prevent accidental edits
 let notesLocked=false;
-window.onNotesInput=function(){scheduleSave()};
+window.onNotesInput=function(){autoResizeNotes();scheduleSave()};
+function autoResizeNotes(){const el=document.getElementById('notesField');if(!el)return;el.style.height='auto';el.style.height=el.scrollHeight+'px'}
 window.toggleNotesEdit=function(){
   const field=document.getElementById('notesField');
   const btn=document.getElementById('notesEditBtn');
