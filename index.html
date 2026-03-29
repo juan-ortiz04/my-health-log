@@ -124,8 +124,9 @@ body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:var(--bg)
 .tb-save-dot.error{background:var(--rose)}
 
 /* ═══ CALENDAR DROPDOWN ═══ */
-.cal-dropdown{display:none;position:absolute;top:100%;left:50%;transform:translateX(-50%);margin-top:8px;background:var(--l1);border:1px solid var(--b1);border-radius:14px;box-shadow:var(--shadow-lg);z-index:95;padding:12px;min-width:280px;-webkit-tap-highlight-color:transparent}
-.cal-dropdown.show{display:block;animation:modalIn .2s ease}
+.cal-dropdown{display:none;position:absolute;top:100%;left:50%;margin-left:-140px;margin-top:8px;background:var(--l1);border:1px solid var(--b1);border-radius:14px;box-shadow:var(--shadow-lg);z-index:95;padding:12px;width:280px;-webkit-tap-highlight-color:transparent}
+.cal-dropdown.show{display:block;animation:calFadeIn .15s ease}
+@keyframes calFadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
 .cal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
 .cal-header button{background:none;border:none;color:var(--t2);font-size:16px;cursor:pointer;padding:4px 8px;border-radius:6px;-webkit-tap-highlight-color:transparent}
 .cal-header button:hover{background:var(--l2)}
