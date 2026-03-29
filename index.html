@@ -173,7 +173,20 @@ body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:var(--bg)
 .moment-save-btn:hover{filter:brightness(1.1);transform:translateY(-1px)}
 .moment-save-btn:active{transform:translateY(0)}
 
-/* ═══ SLIDERS ═══ */
+/* ═══ SCORE PICKER BUTTONS ═══ */
+.score-picker{margin-bottom:10px}
+.score-picker:last-of-type{margin-bottom:12px}
+.sp-label{font-size:11px;font-weight:600;margin-bottom:4px}
+.sp-buttons{display:flex;gap:3px}
+.sp-btn{flex:1;padding:7px 0;border-radius:7px;border:1.5px solid var(--b1);background:var(--l2);color:var(--t2);font-size:12px;font-weight:500;text-align:center;cursor:pointer;font-family:inherit;transition:all .12s;-webkit-tap-highlight-color:transparent}
+.sp-btn:hover{border-color:var(--b2)}
+.sp-btn.active{color:#fff;font-weight:700;border-color:transparent}
+.sp-btn.active.c-teal{background:var(--teal)}
+.sp-btn.active.c-blue{background:var(--blue)}
+.sp-btn.active.c-violet{background:var(--violet)}
+.sp-btn.active.c-rose{background:var(--rose)}
+
+/* ═══ SLIDERS (kept for other uses) ═══ */
 .slider-value{font-size:12px;font-weight:700;min-width:28px;text-align:center;padding:2px 6px;border-radius:5px;transition:background .2s,color .2s}
 .slider-value.sev-none{background:var(--l2);color:var(--t3)}
 .slider-value.sev-low{background:var(--green-d);color:var(--green)}
@@ -193,11 +206,12 @@ input[type="range"]::-moz-range-thumb{width:22px;height:22px;border-radius:50%;b
 .tl-header{display:flex;align-items:center;gap:8px;margin-bottom:4px}
 .tl-time{font-size:11px;font-weight:600;color:var(--teal)}
 .tl-score{font-size:11px;font-weight:700;padding:1px 6px;border-radius:4px}
-.tl-detail{font-size:10.5px;font-weight:500;color:var(--t2);letter-spacing:.02em;flex-shrink:0}
-.tl-detail span{font-weight:700;font-size:9.5px}
-.tl-bars{display:flex;gap:3px;flex:1;min-width:60px}
-.tl-bar{height:6px;border-radius:3px;flex:1;position:relative}
-.tl-bar-fill{height:100%;border-radius:3px;transition:width .2s}
+.tl-labels{display:flex;gap:0;flex:1;font-size:9px;font-weight:600;margin-bottom:2px}
+.tl-lbl{text-align:center;line-height:1}
+.tl-lbl span{display:block;font-size:8px;font-weight:500;color:var(--t3)}
+.tl-stacked{display:flex;height:8px;border-radius:4px;overflow:hidden;flex:1}
+.tl-stacked-seg{transition:width .2s}
+.tl-moment-bar{flex:1;display:flex;flex-direction:column}
 .tl-note{font-size:11.5px;color:var(--t2);margin-top:2px}
 .tl-delete{position:absolute;top:6px;right:6px;background:none;border:none;color:var(--t3);cursor:pointer;font-size:13px;padding:2px;border-radius:4px;opacity:0;transition:opacity .15s}
 .timeline-item:hover .tl-delete{opacity:1}
@@ -455,42 +469,12 @@ input[type="range"]::-moz-range-thumb{width:22px;height:22px;border-radius:50%;b
         <!-- MOMENT ENTRY FORM (always visible) -->
         <div class="moment-form">
           <div class="card-title"><span class="card-icon">⚡</span> Log a Moment</div>
-          <div class="moment-row">
-            <label>Time</label>
-            <input type="time" class="moment-time" id="momentTime">
-          </div>
-          <div class="moment-row">
-            <label>Tinnitus</label>
-            <div class="moment-slider-wrap">
-              <input type="range" id="m-tinnitus" min="0" max="10" step="1" value="0" oninput="updateMomentPreview()">
-              <span class="slider-value sev-none" id="mv-tinnitus">0</span>
-            </div>
-          </div>
-          <div class="moment-row">
-            <label>Fullness</label>
-            <div class="moment-slider-wrap">
-              <input type="range" id="m-earFullness" min="0" max="10" step="1" value="0" oninput="updateMomentPreview()">
-              <span class="slider-value sev-none" id="mv-earFullness">0</span>
-            </div>
-          </div>
-          <div class="moment-row">
-            <label>Radiation</label>
-            <div class="moment-slider-wrap">
-              <input type="range" id="m-radiation" min="0" max="10" step="1" value="0" oninput="updateMomentPreview()">
-              <span class="slider-value sev-none" id="mv-radiation">0</span>
-            </div>
-          </div>
-          <div class="moment-row">
-            <label>Distress</label>
-            <div class="moment-slider-wrap">
-              <input type="range" id="m-distress" min="0" max="10" step="1" value="0" oninput="updateMomentPreview()">
-              <span class="slider-value sev-none" id="mv-distress">0</span>
-            </div>
-          </div>
-          <div class="moment-row">
-            <label>Note</label>
-            <input type="text" class="moment-note" id="momentNote" placeholder="e.g. after walk, work call, woke up...">
-          </div>
+          <div class="moment-row"><label>Time</label><input type="time" class="moment-time" id="momentTime"></div>
+          <div class="score-picker" data-field="tinnitus" data-color="teal"><div class="sp-label" style="color:var(--teal)">Tinnitus</div><div class="sp-buttons" id="sp-tinnitus"></div></div>
+          <div class="score-picker" data-field="earFullness" data-color="blue"><div class="sp-label" style="color:var(--blue)">Fullness</div><div class="sp-buttons" id="sp-earFullness"></div></div>
+          <div class="score-picker" data-field="radiation" data-color="violet"><div class="sp-label" style="color:var(--violet)">Radiation</div><div class="sp-buttons" id="sp-radiation"></div></div>
+          <div class="score-picker" data-field="distress" data-color="rose"><div class="sp-label" style="color:var(--rose)">Distress</div><div class="sp-buttons" id="sp-distress"></div></div>
+          <div class="moment-row"><label>Note</label><input type="text" class="moment-note" id="momentNote" placeholder="e.g. after walk, work call, woke up..."></div>
           <div class="moment-bottom">
             <span class="moment-score-preview" id="momentScorePreview">Score: 0 / 40</span>
             <button type="button" class="moment-save-btn" onclick="saveMoment()">Save Moment</button>
@@ -757,8 +741,9 @@ function loadDayView(){
 
 function resetMomentForm(){
   FIELDS.forEach(f=>{
-    const el=document.getElementById('m-'+f);if(el)el.value=0;
-    const badge=document.getElementById('mv-'+f);if(badge){badge.textContent='—';badge.className='slider-value sev-none'}
+    momentScores[f]=null;
+    const container=document.getElementById('sp-'+f);
+    if(container)container.querySelectorAll('.sp-btn').forEach(b=>b.classList.remove('active'));
   });
   document.getElementById('momentNote').value='';
   document.getElementById('momentTime').value=currentViewDate===todayStr()?nowTime():'12:00';
@@ -826,14 +811,33 @@ window.setDayType=function(type){
 document.addEventListener('click',e=>{if(!e.target.closest('.day-type-menu'))document.getElementById('dayTypeDropdown').classList.remove('show')});
 
 // ═══ 5. MOMENT SYSTEM ═══
+const momentScores={tinnitus:null,earFullness:null,radiation:null,distress:null};
+const FIELD_COLORS={tinnitus:'teal',earFullness:'blue',radiation:'violet',distress:'rose'};
+
+function initScorePickers(){
+  FIELDS.forEach(f=>{
+    const container=document.getElementById('sp-'+f);if(!container)return;
+    container.textContent='';
+    for(let i=0;i<=10;i++){
+      const btn=document.createElement('button');btn.type='button';btn.className='sp-btn';btn.textContent=i;
+      btn.addEventListener('click',()=>{
+        container.querySelectorAll('.sp-btn').forEach(b=>b.classList.remove('active'));
+        btn.classList.add('active','c-'+FIELD_COLORS[f]);
+        momentScores[f]=i;
+        updateMomentPreview();
+      });
+      container.appendChild(btn);
+    }
+  });
+}
+
 window.updateMomentPreview=function(){
-  FIELDS.forEach(f=>{const el=document.getElementById('m-'+f);const badge=document.getElementById('mv-'+f);const v=parseInt(el.value);badge.textContent=v;badge.className='slider-value '+(v===0?'sev-none':v<=3?'sev-low':v<=6?'sev-med':'sev-high')});
-  const score=FIELDS.reduce((s,f)=>s+parseInt(document.getElementById('m-'+f).value),0);
+  const score=FIELDS.reduce((s,f)=>s+(momentScores[f]||0),0);
   document.getElementById('momentScorePreview').textContent='Score: '+score+' / 40';
 };
 
 window.saveMoment=function(){
-  const moment={id:crypto.randomUUID(),time:document.getElementById('momentTime').value||nowTime(),tinnitus:parseInt(document.getElementById('m-tinnitus').value),earFullness:parseInt(document.getElementById('m-earFullness').value),radiation:parseInt(document.getElementById('m-radiation').value),distress:parseInt(document.getElementById('m-distress').value),note:document.getElementById('momentNote').value.trim()};
+  const moment={id:crypto.randomUUID(),time:document.getElementById('momentTime').value||nowTime(),tinnitus:momentScores.tinnitus||0,earFullness:momentScores.earFullness||0,radiation:momentScores.radiation||0,distress:momentScores.distress||0,note:document.getElementById('momentNote').value.trim()};
   const entry=getOrCreateEntry(currentViewDate);
   entry.moments.push(moment);
   entry.moments.sort((a,b)=>a.time.localeCompare(b.time));
@@ -862,19 +866,28 @@ function renderMomentTimeline(){
     const item=document.createElement('div');item.className='timeline-item';
     const score=getMomentScore(m);const tier=getTierClass(score);
     const colors={tinnitus:'var(--teal)',earFullness:'var(--blue)',radiation:'var(--violet)',distress:'var(--rose)'};
+    const initials={tinnitus:'T',earFullness:'F',radiation:'R',distress:'D'};
     const header=document.createElement('div');header.className='tl-header';
     const timeSpan=document.createElement('span');timeSpan.className='tl-time';timeSpan.textContent=m.time;
-    // Inline scores: T5 F3 R2 D4
-    const detailSpan=document.createElement('span');detailSpan.className='tl-detail';
-    detailSpan.innerHTML='<span style="color:var(--teal)">T</span>'+m.tinnitus+' <span style="color:var(--blue)">F</span>'+m.earFullness+' <span style="color:var(--violet)">R</span>'+m.radiation+' <span style="color:var(--rose)">D</span>'+m.distress;
     const scoreSpan=document.createElement('span');scoreSpan.className='tl-score tier-badge '+tier;scoreSpan.textContent=score;
-    const barsDiv=document.createElement('div');barsDiv.className='tl-bars';
-    FIELDS.forEach(f=>{
-      const pct=((m[f]||0)/10)*100;
-      barsDiv.innerHTML+='<div class="tl-bar" style="background:var(--l3)"><div class="tl-bar-fill" style="width:'+pct+'%;background:'+colors[f]+'"></div></div>';
-    });
-    header.appendChild(timeSpan);header.appendChild(detailSpan);header.appendChild(barsDiv);header.appendChild(scoreSpan);
+    header.appendChild(timeSpan);header.appendChild(scoreSpan);
     item.appendChild(header);
+    // Stacked bar with labels above
+    const barWrap=document.createElement('div');barWrap.className='tl-moment-bar';
+    const labelsDiv=document.createElement('div');labelsDiv.className='tl-labels';
+    const stackedDiv=document.createElement('div');stackedDiv.className='tl-stacked';
+    const total=score||1;
+    FIELDS.forEach(f=>{
+      const v=m[f]||0;
+      const pct=Math.max((v/total)*100,0);
+      const lbl=document.createElement('div');lbl.className='tl-lbl';lbl.style.width=pct+'%';lbl.style.color=colors[f];
+      lbl.innerHTML=initials[f]+'<span>'+v+'</span>';
+      labelsDiv.appendChild(lbl);
+      const seg=document.createElement('div');seg.className='tl-stacked-seg';seg.style.width=pct+'%';seg.style.background=colors[f];
+      stackedDiv.appendChild(seg);
+    });
+    barWrap.appendChild(labelsDiv);barWrap.appendChild(stackedDiv);
+    item.appendChild(barWrap);
     if(m.note){const note=document.createElement('div');note.className='tl-note';note.textContent=m.note;item.appendChild(note)}
     const del=document.createElement('button');del.className='tl-delete';del.textContent='×';del.title='Delete moment';
     const mid=m.id;del.addEventListener('click',e=>{e.stopPropagation();deleteMoment(mid)});
@@ -1129,6 +1142,7 @@ async function init(){
   if(!loaded)loaded=loadFromLS();
   if(loaded&&storageMode==='none')storageMode='localStorage';
   if(!loaded&&storageMode==='none')document.getElementById('setupModal').classList.add('show');
+  initScorePickers();
   document.getElementById('momentTime').value=nowTime();
   updateMomentPreview();
   loadDayView();
