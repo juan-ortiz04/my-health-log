@@ -886,6 +886,11 @@ function renderMomentTimeline(){
 }
 
 // ═══ 6. DAILY FIELDS ═══
+function getPreviousDayEntry(){
+  const sorted=[...APP.entries].filter(e=>e.date<currentViewDate).sort((a,b)=>b.date.localeCompare(a.date));
+  return sorted.length?sorted[0]:null;
+}
+
 function loadDailyFieldsIntoForm(){
   currentSleepQuality=null;
   document.querySelectorAll('.sq-btn').forEach(b=>b.classList.remove('active'));
@@ -893,12 +898,23 @@ function loadDailyFieldsIntoForm(){
   document.getElementById('medBlocks').textContent='';
   document.getElementById('interventionBlocks').textContent='';
   document.getElementById('notesField').value='';
-  const entry=getEntry(currentViewDate);if(!entry)return;
-  if(entry.sleepQuality){currentSleepQuality=entry.sleepQuality;const v=SQ_MAP[entry.sleepQuality];document.querySelectorAll('.sq-btn').forEach(b=>{b.classList.toggle('active',parseInt(b.getAttribute('data-val'))===v)})}
-  if(entry.exercises)entry.exercises.forEach(ex=>addExerciseBlock(ex));
-  if(entry.medications)entry.medications.forEach(m=>addMedBlock(m));
-  if(entry.interventions)entry.interventions.forEach(iv=>addInterventionBlock(iv));
-  if(entry.notes)document.getElementById('notesField').value=entry.notes;
+  const entry=getEntry(currentViewDate);
+  if(entry){
+    // Load existing entry
+    if(entry.sleepQuality){currentSleepQuality=entry.sleepQuality;const v=SQ_MAP[entry.sleepQuality];document.querySelectorAll('.sq-btn').forEach(b=>{b.classList.toggle('active',parseInt(b.getAttribute('data-val'))===v)})}
+    if(entry.exercises&&entry.exercises.length)entry.exercises.forEach(ex=>addExerciseBlock(ex));
+    if(entry.medications&&entry.medications.length)entry.medications.forEach(m=>addMedBlock(m));
+    if(entry.interventions&&entry.interventions.length)entry.interventions.forEach(iv=>addInterventionBlock(iv));
+    if(entry.notes)document.getElementById('notesField').value=entry.notes;
+  }else{
+    // New day — carry forward meds, exercise, interventions from previous day
+    const prev=getPreviousDayEntry();
+    if(prev){
+      if(prev.medications&&prev.medications.length)prev.medications.forEach(m=>addMedBlock({name:m.name,dose:m.dose,time:m.time}));
+      if(prev.exercises&&prev.exercises.length)prev.exercises.forEach(ex=>addExerciseBlock({type:ex.type,duration:ex.duration,timeOfDay:ex.timeOfDay}));
+      if(prev.interventions&&prev.interventions.length)prev.interventions.forEach(iv=>addInterventionBlock({name:iv.name}));
+    }
+  }
 }
 
 function saveDailyFields(){
@@ -977,14 +993,21 @@ function updateGauge(){
 function drawSparkline(cid,vals,color){const c=document.getElementById(cid);if(!c||!vals.length)return;const w=c.clientWidth||120,h=26;if(vals.length===1){c.innerHTML='<svg width="'+w+'" height="'+h+'"><circle cx="'+w/2+'" cy="'+h/2+'" r="3" fill="'+color+'"/></svg>';return}const mx=Math.max(...vals),mn=Math.min(...vals),rng=mx-mn||1,p=3;const pts=vals.map((v,i)=>{const x=p+(i/(vals.length-1))*(w-p*2);const y=(h-p)-((v-mn)/rng)*(h-p*2);return x+','+y});const lx=p+((vals.length-1)/(vals.length-1))*(w-p*2);const ly=(h-p)-((vals[vals.length-1]-mn)/rng)*(h-p*2);c.innerHTML='<svg width="'+w+'" height="'+h+'"><polyline points="'+pts.join(' ')+'" fill="none" stroke="'+color+'" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/><circle cx="'+lx+'" cy="'+ly+'" r="2.5" fill="'+color+'"/></svg>'}
 
 function updateSparklines(){
-  const sorted=[...APP.entries].sort((a,b)=>a.date.localeCompare(b.date)).slice(-14);
+  const sorted=[...APP.entries].filter(e=>e.moments&&e.moments.length).sort((a,b)=>a.date.localeCompare(b.date)).slice(-14);
   const colors={tinnitus:'var(--teal)',earFullness:'var(--blue)',radiation:'var(--violet)',distress:'var(--rose)'};
-  FIELDS.forEach(f=>{
-    const vals=sorted.map(e=>{const mm=e.moments||[];if(!mm.length)return null;return Math.round(mm.reduce((s,m)=>s+(m[f]||0),0)/mm.length)}).filter(v=>v!==null);
-    drawSparkline('spark-'+f,vals,colors[f]);
-    const ve=document.getElementById('spark-val-'+f);if(ve)ve.textContent=vals.length?vals[vals.length-1]:'—';
+  // Compute per-day averages for each field
+  const dayAvgs=sorted.map(e=>{
+    const mm=e.moments;const n=mm.length;
+    const avg={};FIELDS.forEach(f=>{avg[f]=Math.round(mm.reduce((s,m)=>s+(m[f]||0),0)/n*10)/10});
+    avg.score=Math.round(FIELDS.reduce((s,f)=>s+avg[f],0));
+    return avg;
   });
-  const scoreVals=sorted.filter(e=>e.moments&&e.moments.length).map(e=>getDaySummary(e));
+  FIELDS.forEach(f=>{
+    const vals=dayAvgs.map(a=>a[f]);
+    drawSparkline('spark-'+f,vals,colors[f]);
+    const ve=document.getElementById('spark-val-'+f);if(ve)ve.textContent=vals.length?Math.round(vals[vals.length-1]):'—';
+  });
+  const scoreVals=dayAvgs.map(a=>a.score);
   drawSparkline('spark-score',scoreVals,'var(--amber)');
   const sv=document.getElementById('spark-val-score');if(sv)sv.textContent=scoreVals.length?scoreVals[scoreVals.length-1]:'—';
 }
