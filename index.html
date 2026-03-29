@@ -595,6 +595,9 @@ input[type="range"]::-moz-range-thumb{width:22px;height:22px;border-radius:50%;b
 (function(){
 'use strict';
 
+// UUID polyfill for older iOS
+if(!crypto.randomUUID){crypto.randomUUID=function(){return'10000000-1000-4000-8000-100000000000'.replace(/[018]/g,c=>(c^crypto.getRandomValues(new Uint8Array(1))[0]&15>>c/4).toString(16))}}
+
 // ═══ 1. CONSTANTS ═══
 const VERSION=3,LS_KEY='menieres_v3',LS_BACKUP='menieres_v3_bak',IDB_NAME='menieres_v3_idb',IDB_STORE='handles',IDB_KEY='fsaHandle',AUTOSAVE_MS=1200;
 const EXERCISE_TYPES=['Road Cycling','Indoor Cycling (Zwift)','Treadmill','Walking','Running','Swimming','Weights','Stretching','Yoga','Pilates','Tai Chi','Vestibular Rehab','Other'];
@@ -686,8 +689,8 @@ function applyLoadedData(data){
   return true;
 }
 
-function scheduleSave(){isDirty=true;clearTimeout(saveTimeout);saveTimeout=setTimeout(()=>{saveDailyFields();persistData()},AUTOSAVE_MS)}
-window.manualSave=async function(){saveDailyFields();await persistData();showToast('Saved! ('+APP.entries.length+' entries)','success')};
+function scheduleSave(){isDirty=true;clearTimeout(saveTimeout);saveTimeout=setTimeout(()=>saveDailyFields(),AUTOSAVE_MS)}
+window.manualSave=async function(){saveDailyFields();showToast('Saved! ('+APP.entries.length+' entries)','success')};
 function updateSaveDot(s){const d=document.getElementById('saveDot');if(d)d.className='save-dot '+s;const t=document.getElementById('saveStatusText');if(t)t.textContent={idle:'Ready',saved:'Saved',saving:'Saving...',error:'Error'}[s]||s}
 
 // ═══ 4. DATE NAV ═══
@@ -803,7 +806,7 @@ function loadDailyFieldsIntoForm(){
 }
 
 function saveDailyFields(){
-  const entry=getEntry(currentViewDate);if(!entry)return;
+  const entry=getOrCreateEntry(currentViewDate);
   entry.sleepQuality=currentSleepQuality;
   entry.exercises=collectExerciseBlocks();
   entry.medications=collectMedBlocks();
@@ -980,6 +983,7 @@ function updateThemeBtn(){const isDark=document.documentElement.getAttribute('da
 
 // ═══ 14. TABS ═══
 window.switchTab=function(id){
+  saveDailyFields();
   document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
   document.querySelectorAll('.nav-dot,.mobile-nav-btn').forEach(d=>d.classList.remove('active'));
   const tabEl=document.getElementById('tab-'+CSS.escape(id));if(tabEl)tabEl.classList.add('active');
@@ -1014,6 +1018,10 @@ async function init(){
   document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key==='s'){e.preventDefault();manualSave()}});
 }
 window.addEventListener('DOMContentLoaded',init);
+// Save on browser close / tab close / phone app switch
+window.addEventListener('beforeunload',()=>saveDailyFields());
+window.addEventListener('pagehide',()=>saveDailyFields());
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')saveDailyFields()});
 window.closeModal=function(id){document.getElementById(id).classList.remove('show')};
 window.toggleMobileMenu=function(){document.getElementById('mobileMenu').classList.toggle('show')};
 window.closeMobileMenu=function(){document.getElementById('mobileMenu').classList.remove('show')};
