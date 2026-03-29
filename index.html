@@ -239,6 +239,15 @@ input[data-color="rose"]::-moz-range-thumb{border-color:var(--rose);background:v
 .dyn-block .dose-input{width:80px;flex:none}
 .dyn-remove{width:28px;height:28px;border-radius:7px;border:1px solid var(--b1);background:transparent;color:var(--t3);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0;-webkit-tap-highlight-color:transparent;margin-left:4px}
 .dyn-remove:hover,.dyn-remove:active{background:var(--rose-d);color:var(--rose);border-color:var(--rose)}
+/* Carry-forward confirmation */
+.cf-banner{display:flex;align-items:center;gap:8px;padding:8px 12px;margin-bottom:8px;border-radius:8px;background:var(--amber-d);border:1px solid var(--amber);font-size:11px;color:var(--amber)}
+.cf-banner .cf-text{flex:1}
+.cf-banner .cf-btn{padding:4px 12px;border-radius:6px;border:none;font-family:inherit;font-size:11px;font-weight:600;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:all .12s}
+.cf-btn-yes{background:var(--green);color:#fff}
+.cf-btn-yes:hover{filter:brightness(1.1)}
+.cf-btn-no{background:var(--l1);color:var(--t2);border:1px solid var(--b1)!important}
+.cf-btn-no:hover{background:var(--l2)}
+.cf-confirmed{display:flex;align-items:center;gap:6px;padding:6px 10px;margin-bottom:8px;border-radius:7px;background:var(--green-d);font-size:11px;color:var(--green);font-weight:500}
 .add-btn{display:inline-flex;align-items:center;gap:5px;padding:6px 12px;border-radius:7px;border:1.5px dashed var(--b2);background:transparent;color:var(--t3);cursor:pointer;font-family:inherit;font-size:11px;font-weight:500;transition:all .15s;margin-top:3px}
 .add-btn:hover{border-color:var(--blue);color:var(--blue);background:var(--blue-g)}
 
@@ -1083,34 +1092,39 @@ function loadDailyFieldsIntoForm(){
   document.getElementById('interventionBlocks').textContent='';
   document.getElementById('notesField').value='';
   const entry=getEntry(currentViewDate);
+  // Remove old CF banners
+  document.querySelectorAll('.cf-banner,.cf-confirmed').forEach(el=>el.remove());
   if(entry){
-    // Load existing entry
+    // Load existing entry — already confirmed
+    cfConfirmed={exercise:true,meds:true,interventions:true};
     if(entry.sleepQuality){currentSleepQuality=entry.sleepQuality;const v=SQ_MAP[entry.sleepQuality];document.querySelectorAll('.sq-btn').forEach(b=>{b.classList.toggle('active',parseInt(b.getAttribute('data-val'))===v)})}
     if(entry.exercises&&entry.exercises.length)entry.exercises.forEach(ex=>addExerciseBlock(ex));
     if(entry.medications&&entry.medications.length)entry.medications.forEach(m=>addMedBlock(m));
     if(entry.interventions&&entry.interventions.length)entry.interventions.forEach(iv=>addInterventionBlock(iv));
     if(entry.notes)document.getElementById('notesField').value=entry.notes;
-    autoResizeNotes();  }else{
-    // New day — carry forward meds, exercise, interventions from previous day
+    autoResizeNotes();
+  }else{
+    // New day — carry forward with confirmation banners
+    resetCFState();
     const prev=getPreviousDayEntry();
     if(prev){
-      if(prev.medications&&prev.medications.length)prev.medications.forEach(m=>addMedBlock({name:m.name,dose:m.dose,time:m.time}));
-      if(prev.exercises&&prev.exercises.length)prev.exercises.forEach(ex=>addExerciseBlock({type:ex.type,duration:ex.duration,timeOfDay:ex.timeOfDay}));
-      if(prev.interventions&&prev.interventions.length)prev.interventions.forEach(iv=>addInterventionBlock({name:iv.name}));
-    }
+      if(prev.exercises&&prev.exercises.length){prev.exercises.forEach(ex=>addExerciseBlock({type:ex.type,duration:ex.duration,timeOfDay:ex.timeOfDay}));showCFBanner('exerciseBlocks','exercise','exercise')}
+      if(prev.medications&&prev.medications.length){prev.medications.forEach(m=>addMedBlock({name:m.name,dose:m.dose,time:m.time}));showCFBanner('medBlocks','meds','medications')}
+      if(prev.interventions&&prev.interventions.length){prev.interventions.forEach(iv=>addInterventionBlock({name:iv.name}));showCFBanner('interventionBlocks','interventions','interventions')}
+    }else{cfConfirmed={exercise:true,meds:true,interventions:true}}
   }
   }
 
 function saveDailyFields(){
   const sq=currentSleepQuality;
-  const ex=collectExerciseBlocks();
-  const meds=collectMedBlocks();
-  const intv=collectInterventionBlocks();
+  const ex=cfConfirmed.exercise?collectExerciseBlocks():[];
+  const meds=cfConfirmed.meds?collectMedBlocks():[];
+  const intv=cfConfirmed.interventions?collectInterventionBlocks():[];
   const notes=document.getElementById('notesField').value.trim();
-  // Only create entry if there's actual data (not just from browsing)
+  // Only create entry if there's actual confirmed data
   const hasData=sq||ex.length||meds.length||intv.length||notes;
   const entry=getEntry(currentViewDate);
-  if(!entry&&!hasData)return; // Don't create empty entries
+  if(!entry&&!hasData)return;
   const target=entry||getOrCreateEntry(currentViewDate);
   target.sleepQuality=sq;
   target.exercises=ex;
@@ -1143,7 +1157,45 @@ window.selectSleep=function(btn){
 window.onNotesInput=function(){autoResizeNotes();scheduleSave()};
 function autoResizeNotes(){const el=document.getElementById('notesField');if(!el)return;el.style.height='auto';el.style.height=el.scrollHeight+'px'}
 
-// ═══ 7. DYNAMIC BLOCKS (with lock/unlock/confirm) ═══
+// ═══ 6b. CARRY-FORWARD CONFIRMATION ═══
+let cfConfirmed={exercise:false,meds:false,interventions:false};
+
+function showCFBanner(containerId,section,label){
+  const container=document.getElementById(containerId);
+  if(!container)return;
+  // Remove any existing banner
+  const old=container.parentElement.querySelector('.cf-banner,.cf-confirmed');
+  if(old)old.remove();
+  const banner=document.createElement('div');banner.className='cf-banner';
+  banner.innerHTML='<span class="cf-text">📋 Carried from yesterday — same '+label+' today?</span><button class="cf-btn cf-btn-yes" onclick="confirmCF(\''+section+'\',this)">✓ Yes</button><button class="cf-btn cf-btn-no" onclick="clearCF(\''+section+'\',\''+containerId+'\',this)">✗ Clear</button>';
+  container.parentElement.insertBefore(banner,container);
+}
+
+window.confirmCF=function(section,btn){
+  cfConfirmed[section]=true;
+  const banner=btn.closest('.cf-banner');
+  const confirmed=document.createElement('div');confirmed.className='cf-confirmed';
+  confirmed.textContent='✓ Confirmed for today';
+  banner.replaceWith(confirmed);
+  setTimeout(()=>confirmed.remove(),2000);
+  scheduleSave();
+};
+
+window.clearCF=function(section,containerId,btn){
+  cfConfirmed[section]=true; // mark confirmed (as empty)
+  document.getElementById(containerId).textContent='';
+  btn.closest('.cf-banner').remove();
+  scheduleSave();
+};
+
+function resetCFState(){cfConfirmed={exercise:false,meds:false,interventions:false}}
+function autoConfirmBanner(containerId){
+  const container=document.getElementById(containerId);if(!container)return;
+  const banner=container.parentElement.querySelector('.cf-banner');
+  if(banner){const c=document.createElement('div');c.className='cf-confirmed';c.textContent='✓ Confirmed';banner.replaceWith(c);setTimeout(()=>c.remove(),1500)}
+}
+
+// ═══ 7. DYNAMIC BLOCKS ═══
 function addBlockButtons(div){
   const rm=document.createElement('button');rm.type='button';rm.className='dyn-remove';rm.textContent='×';rm.title='Delete';
   rm.addEventListener('click',()=>{if(!confirm('Delete this item?'))return;div.remove();scheduleSave()});
@@ -1155,7 +1207,7 @@ window.addExerciseBlock=function(data){
   const sel=document.createElement('select');sel.innerHTML='<option value="">Type...</option>'+EXERCISE_TYPES.map(t=>'<option value="'+sanitizeText(t)+'"'+(data&&data.type===t?' selected':'')+'>'+sanitizeText(t)+'</option>').join('');
   const dur=document.createElement('input');dur.type='number';dur.placeholder='min';dur.min='0';dur.max='600';if(data&&data.duration)dur.value=data.duration;
   const tod=document.createElement('select');tod.innerHTML='<option value="">When...</option>'+EXERCISE_TOD.map(t=>'<option'+(data&&data.timeOfDay===t?' selected':'')+'>'+t+'</option>').join('');
-  [sel,dur,tod].forEach(el=>el.addEventListener('change',()=>scheduleSave()));
+  [sel,dur,tod].forEach(el=>el.addEventListener('change',()=>{cfConfirmed.exercise=true;autoConfirmBanner('exerciseBlocks');scheduleSave()}));
   div.appendChild(sel);div.appendChild(dur);div.appendChild(tod);
   addBlockButtons(div);c.appendChild(div);
 };
@@ -1169,19 +1221,20 @@ window.addMedBlock=function(data){
   sel.innerHTML='<option value="">Medication...</option>'+allMeds.map(m=>'<option value="'+sanitizeText(m)+'"'+(data&&data.name===m?' selected':'')+'>'+sanitizeText(m)+'</option>').join('')+'<option value="__other__">+ Other</option>';
   const customInput=document.createElement('input');customInput.type='text';customInput.placeholder='Name';customInput.style.display='none';customInput.style.flex='1';customInput.style.minWidth='100px';
   if(data&&data.name&&!allMeds.includes(data.name)){sel.value='__other__';customInput.style.display='';customInput.value=data.name}
-  sel.addEventListener('change',()=>{customInput.style.display=sel.value==='__other__'?'':'none';if(sel.value==='__other__')customInput.focus();scheduleSave()});
-  customInput.addEventListener('input',()=>scheduleSave());
+  function confirmMeds(){cfConfirmed.meds=true;autoConfirmBanner('medBlocks');scheduleSave()}
+  sel.addEventListener('change',()=>{customInput.style.display=sel.value==='__other__'?'':'none';if(sel.value==='__other__')customInput.focus();confirmMeds()});
+  customInput.addEventListener('input',confirmMeds);
   const dose=document.createElement('input');dose.type='text';dose.className='dose-input';dose.placeholder='Dose';if(data&&data.dose)dose.value=data.dose;
   const when=document.createElement('select');when.innerHTML='<option value="">When...</option>'+MED_TIMES.map(t=>'<option'+(data&&data.time===t?' selected':'')+'>'+t+'</option>').join('');
-  when.addEventListener('change',()=>scheduleSave());
-  dose.addEventListener('input',()=>scheduleSave());
+  when.addEventListener('change',confirmMeds);
+  dose.addEventListener('input',confirmMeds);
   div.appendChild(sel);div.appendChild(customInput);div.appendChild(dose);div.appendChild(when);
   addBlockButtons(div);c.appendChild(div);
 };
 window.addInterventionBlock=function(data){
   const c=document.getElementById('interventionBlocks');const div=document.createElement('div');div.className='dyn-block';
   const name=document.createElement('input');name.type='text';name.placeholder='e.g. retainer for bruxism';name.setAttribute('list','intSugg');name.style.flex='1';name.style.minWidth='180px';if(data&&data.name)name.value=data.name;
-  name.addEventListener('input',()=>scheduleSave());
+  name.addEventListener('input',()=>{cfConfirmed.interventions=true;autoConfirmBanner('interventionBlocks');scheduleSave()});
   div.appendChild(name);
   addBlockButtons(div);c.appendChild(div);
   updateDatalist('intSugg',APP.savedInterventions);
