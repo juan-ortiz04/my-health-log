@@ -702,7 +702,8 @@ let APP={version:VERSION,entries:[],savedMedications:[],savedInterventions:[],se
 let fileHandle=null,storageMode='none',currentViewDate=todayStr(),currentSleepQuality=null,isDirty=false,saveTimeout=null;
 let chartInstances={};
 
-function todayStr(){return new Date().toISOString().slice(0,10)}
+function dateToLocal(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function todayStr(){return dateToLocal(new Date())}
 function nowTime(){const d=new Date();return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')}
 function getMomentScore(m){return(m.tinnitus||0)+(m.earFullness||0)+(m.radiation||0)+(m.distress||0)}
 function getDaySummary(entry){
@@ -792,7 +793,7 @@ function updateSaveDot(s){
 }
 
 // ═══ 4. DATE NAV ═══
-window.navigateDay=function(delta){saveDailyFields();const d=new Date(currentViewDate+'T12:00:00');d.setDate(d.getDate()+delta);const nd=d.toISOString().slice(0,10);if(nd>todayStr()){showToast('Cannot go to future.','info');return}currentViewDate=nd;loadDayView();};
+window.navigateDay=function(delta){saveDailyFields();const d=new Date(currentViewDate+'T12:00:00');d.setDate(d.getDate()+delta);const nd=dateToLocal(d);if(nd>todayStr()){showToast('Cannot go to future.','info');return}currentViewDate=nd;loadDayView();};
 window.navigateToToday=function(){if(currentViewDate===todayStr())return;saveDailyFields();currentViewDate=todayStr();loadDayView()};
 
 function loadDayView(){
@@ -1432,7 +1433,7 @@ function renderKPIs(entries){
   const avg7=last7.length?mean(last7.map(e=>getDaySummary(e))):0;
   const avg30=last30.length?mean(last30.map(e=>getDaySummary(e))):0;
   const delta=last30.length>=14?avg7-mean(sorted.slice(-14,-7).map(e=>getDaySummary(e))):0;
-  let streak=0;for(let i=sorted.length-1;i>=0;i--){const d=new Date(sorted[i].date+'T12:00:00');const expected=new Date();expected.setDate(expected.getDate()-(sorted.length-1-i));if(sorted[i].date===expected.toISOString().slice(0,10))streak++;else break}
+  let streak=0;for(let i=sorted.length-1;i>=0;i--){const expected=new Date();expected.setDate(expected.getDate()-(sorted.length-1-i));if(sorted[i].date===dateToLocal(expected))streak++;else break}
   const bestScore=sorted.length?Math.min(...sorted.map(e=>getDaySummary(e))):0;
   const kpis=[
     {label:'7-Day Avg',value:avg7.toFixed(1),delta:delta,unit:'/40'},
@@ -1494,7 +1495,7 @@ function renderHeatmap(entries){
   const colorScale=d3.scaleLinear().domain([0,13,26,40]).range(['#dcfce7','#fef3c7','#fee2e2','#fca5a5']);
   const isDark=document.documentElement.getAttribute('data-theme')==='dark';
   if(isDark)colorScale.range(['#0e3520','#3c2e0a','#3c1414','#7f1d1d']);
-  const cells=[];for(let i=0;i<=weeksToShow*7;i++){const d=new Date(startDate);d.setDate(d.getDate()+i);if(d>today)break;const ds=d.toISOString().slice(0,10);const week=Math.floor(i/7);const dow=d.getDay();cells.push({date:ds,week,dow,score:scoreMap.get(ds)??null})}
+  const cells=[];for(let i=0;i<=weeksToShow*7;i++){const d=new Date(startDate);d.setDate(d.getDate()+i);if(d>today)break;const ds=dateToLocal(d);const week=Math.floor(i/7);const dow=d.getDay();cells.push({date:ds,week,dow,score:scoreMap.get(ds)??null})}
   svg.selectAll('.cell').data(cells).enter().append('rect').attr('class','cell').attr('x',d=>d.week*(cellSize+cellPad)+28).attr('y',d=>d.dow*(cellSize+cellPad)+4).attr('width',cellSize).attr('height',cellSize).attr('fill',d=>d.score!=null?colorScale(d.score):(isDark?'#1c2231':'#f0f2f7')).attr('stroke',isDark?'#252d40':'#e4e7ef').attr('stroke-width',.5).style('cursor','pointer').append('title').text(d=>d.date+(d.score!=null?' — Score: '+d.score:''));
 }
 
