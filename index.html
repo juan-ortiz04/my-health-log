@@ -431,6 +431,7 @@ input[data-color="rose"]::-moz-range-thumb{border-color:var(--rose);background:v
     <!-- TOP BAR -->
     <div class="top-bar" id="topBar">
       <button class="tb-back" onclick="navigateDay(-1)" title="Previous day">‹</button>
+      <button class="tb-back hidden" id="tbForward" onclick="navigateDay(1)" title="Next day">›</button>
       <div class="tb-date" id="tbDate" onclick="toggleCalendar()">
         <div class="tb-date-main" id="tbDateMain">Today</div>
         <div class="tb-date-sub" id="tbDateSub"></div>
@@ -763,6 +764,7 @@ function updateDateNav(){
   if(main)main.textContent=isToday?'Today':formatDateFull(currentViewDate);
   if(sub)sub.textContent=isToday?formatDateFull(currentViewDate):'Tap to open calendar';
   document.getElementById('todayBtn').classList.toggle('hidden',isToday);
+  document.getElementById('tbForward').classList.toggle('hidden',isToday);
   const entry=getEntry(currentViewDate);
   const dayType=entry?entry.dayType:getAutoDayType(currentViewDate);
   const pill=document.getElementById('dayTypePill');
