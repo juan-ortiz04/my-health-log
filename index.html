@@ -207,13 +207,9 @@ input[data-color="rose"]::-moz-range-thumb{border-color:var(--rose);background:v
 .tl-content{flex:1;min-width:0}
 .tl-row1{display:flex;align-items:center;gap:6px;margin-bottom:3px}
 .tl-time{font-size:11px;font-weight:600;color:var(--teal)}
-.tl-score{font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px}
-.tl-detail{font-size:10px;color:var(--t2);display:flex;gap:6px}
-.tl-detail-item{display:flex;align-items:center;gap:2px}
-.tl-detail-item b{font-weight:700;font-size:9.5px}
-.tl-detail-item span{font-size:10px;font-weight:600}
-.tl-row2{display:flex;align-items:center;gap:0;height:7px;border-radius:4px;overflow:hidden;margin-top:2px}
-.tl-row2-seg{height:100%}
+.tl-score{font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;margin-left:auto}
+.tl-bar-labeled{display:flex;height:20px;border-radius:5px;overflow:hidden;margin-top:2px}
+.tl-bar-seg{display:flex;align-items:center;justify-content:center;height:100%;font-size:9px;font-weight:700;color:#fff;letter-spacing:.02em;overflow:hidden;white-space:nowrap}
 .tl-note{font-size:11px;color:var(--t2);margin-top:3px;font-style:italic}
 .tl-actions{display:flex;flex-direction:column;gap:6px;flex-shrink:0}
 .tl-edit,.tl-delete{background:none;border:1px solid var(--b1);color:var(--t3);cursor:pointer;font-size:12px;width:28px;height:28px;border-radius:7px;display:flex;align-items:center;justify-content:center;transition:all .1s;-webkit-tap-highlight-color:transparent}
@@ -938,20 +934,17 @@ function renderMomentTimeline(){
     const score=getMomentScore(m);const tier=getTierClass(score);const total=score||1;
     // Content column
     const content=document.createElement('div');content.className='tl-content';
-    // Row 1: time + T7 F5 R3 D3 + score
+    // Row 1: time + score
     const row1=document.createElement('div');row1.className='tl-row1';
     const timeSpan=document.createElement('span');timeSpan.className='tl-time';timeSpan.textContent=m.time;
     row1.appendChild(timeSpan);
-    const detail=document.createElement('div');detail.className='tl-detail';
-    FIELDS.forEach(f=>{const d=document.createElement('span');d.className='tl-detail-item';d.innerHTML='<b style="color:'+colors[f]+'">'+ini[f]+'</b><span>'+m[f]+'</span>';detail.appendChild(d)});
-    row1.appendChild(detail);
-    const scoreSpan=document.createElement('span');scoreSpan.className='tl-score tier-badge '+tier;scoreSpan.textContent=score;
+    const scoreSpan=document.createElement('span');scoreSpan.className='tl-score tier-badge '+tier;scoreSpan.textContent=score+'/40';
     row1.appendChild(scoreSpan);
     content.appendChild(row1);
-    // Row 2: stacked color bar aligned under the labels
-    const row2=document.createElement('div');row2.className='tl-row2';
-    FIELDS.forEach(f=>{const v=m[f]||0;const seg=document.createElement('div');seg.className='tl-row2-seg';seg.style.width=Math.max((v/total)*100,0)+'%';seg.style.background=colors[f];row2.appendChild(seg)});
-    content.appendChild(row2);
+    // Row 2: single bar with initials INSIDE each color segment
+    const bar=document.createElement('div');bar.className='tl-bar-labeled';
+    FIELDS.forEach(f=>{const v=m[f]||0;const seg=document.createElement('div');seg.className='tl-bar-seg';seg.style.width=Math.max((v/total)*100,2)+'%';seg.style.background=colors[f];seg.textContent=ini[f]+v;bar.appendChild(seg)});
+    content.appendChild(bar);
     // Note
     if(m.note){const note=document.createElement('div');note.className='tl-note';note.textContent=m.note;content.appendChild(note)}
     item.appendChild(content);
@@ -1395,7 +1388,15 @@ window.addEventListener('DOMContentLoaded',init);
 // Save on browser close / tab close / phone app switch
 window.addEventListener('beforeunload',()=>saveDailyFields());
 window.addEventListener('pagehide',()=>saveDailyFields());
-document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')saveDailyFields()});
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='hidden'){saveDailyFields()}
+  else{
+    // App came back to foreground — check if day changed
+    const today=todayStr();
+    if(currentViewDate!==today){saveDailyFields();currentViewDate=today;loadDayView()}
+    document.getElementById('momentTime').value=nowTime();
+  }
+});
 window.closeModal=function(id){document.getElementById(id).classList.remove('show')};
 window.toggleCard=function(id){const el=document.getElementById(CSS.escape(id));if(el)el.classList.toggle('collapsed')};
 window.toggleMobileMenu=function(){document.getElementById('mobileMenu').classList.toggle('show')};
