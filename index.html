@@ -97,21 +97,49 @@ body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:var(--bg)
 .tab-content.active{display:block}
 @keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
 
-/* ═══ DATE NAV ═══ */
-.date-nav{display:flex;align-items:center;gap:10px;margin-bottom:20px;flex-wrap:wrap}
-.date-nav-btn{background:var(--l1);border:1px solid var(--b1);color:var(--t2);width:36px;height:36px;border-radius:10px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:all .15s}
-.date-nav-btn:hover{background:var(--l2);color:var(--t1);border-color:var(--b2)}
-.date-nav-label{font-size:16px;font-weight:600;color:var(--t1);min-width:180px;text-align:center}
-.date-nav-label .date-sub{display:block;font-size:10.5px;font-weight:400;color:var(--t3);margin-top:1px}
-.date-nav-today{background:var(--blue-g);border:1px solid var(--blue);color:var(--blue);padding:5px 12px;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s}
-.date-nav-today:hover{background:var(--blue);color:#fff}
-.date-nav-today.hidden{display:none}
-.day-type-pill{padding:4px 10px;border-radius:6px;font-size:10.5px;font-weight:600;border:1px solid;cursor:pointer;font-family:inherit;transition:all .15s}
+/* ═══ TOP BAR ═══ */
+.top-bar{position:sticky;top:0;z-index:90;background:var(--l1);border-bottom:1px solid var(--b1);padding:10px 16px;display:flex;align-items:center;gap:8px;-webkit-transform:translateZ(0);transform:translateZ(0);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);transition:background .3s,border-color .3s}
+.tb-back{background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer;padding:4px 8px;border-radius:8px;transition:all .15s;-webkit-tap-highlight-color:transparent;flex-shrink:0}
+.tb-back:hover{background:var(--l2);color:var(--t1)}
+.tb-date{flex:1;text-align:center;cursor:pointer;-webkit-tap-highlight-color:transparent;position:relative}
+.tb-date-main{font-size:15px;font-weight:600;color:var(--t1)}
+.tb-date-sub{font-size:10px;color:var(--t3);margin-top:1px}
+.tb-today-jump{background:var(--blue-g);border:1px solid var(--blue);color:var(--blue);padding:4px 10px;border-radius:7px;font-size:10.5px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;flex-shrink:0;-webkit-tap-highlight-color:transparent}
+.tb-today-jump:hover{background:var(--blue);color:#fff}
+.tb-today-jump.hidden{display:none}
+.day-type-pill{padding:3px 8px;border-radius:5px;font-size:9.5px;font-weight:600;border:1px solid;cursor:pointer;font-family:inherit;transition:all .15s;flex-shrink:0}
 .day-type-pill[data-type="Work Day"]{background:var(--blue-d);border-color:var(--blue);color:var(--blue)}
 .day-type-pill[data-type="Weekend"]{background:var(--teal-d);border-color:var(--teal);color:var(--teal)}
 .day-type-pill[data-type="Holiday"]{background:var(--amber-d);border-color:var(--amber);color:var(--amber)}
 .day-type-pill[data-type="Leave"]{background:var(--violet-d);border-color:var(--violet);color:var(--violet)}
 .day-type-pill[data-type="Travel"]{background:var(--rose-d);border-color:var(--rose);color:var(--rose)}
+.tb-save{background:none;border:none;font-size:15px;cursor:pointer;padding:6px 10px;border-radius:8px;transition:all .15s;flex-shrink:0;-webkit-tap-highlight-color:transparent;color:var(--t3)}
+.tb-save:hover{background:var(--l2)}
+.tb-save.saving{color:var(--amber)}
+.tb-save.saved{color:var(--green)}
+.tb-save-dot{display:inline-block;width:6px;height:6px;border-radius:50%;margin-left:4px;vertical-align:middle}
+.tb-save-dot.idle{background:var(--b3)}
+.tb-save-dot.saved{background:var(--green)}
+.tb-save-dot.saving{background:var(--amber)}
+.tb-save-dot.error{background:var(--rose)}
+
+/* ═══ CALENDAR DROPDOWN ═══ */
+.cal-dropdown{display:none;position:absolute;top:100%;left:50%;transform:translateX(-50%);margin-top:8px;background:var(--l1);border:1px solid var(--b1);border-radius:14px;box-shadow:var(--shadow-lg);z-index:95;padding:12px;min-width:280px;-webkit-tap-highlight-color:transparent}
+.cal-dropdown.show{display:block;animation:modalIn .2s ease}
+.cal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.cal-header button{background:none;border:none;color:var(--t2);font-size:16px;cursor:pointer;padding:4px 8px;border-radius:6px;-webkit-tap-highlight-color:transparent}
+.cal-header button:hover{background:var(--l2)}
+.cal-header span{font-size:13px;font-weight:600;color:var(--t1)}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;text-align:center}
+.cal-dow{font-size:9px;font-weight:600;color:var(--t3);padding:4px 0;text-transform:uppercase}
+.cal-day{font-size:12px;padding:6px 2px;border-radius:8px;cursor:pointer;border:none;background:transparent;color:var(--t2);font-family:inherit;transition:all .12s;-webkit-tap-highlight-color:transparent;position:relative}
+.cal-day:hover{background:var(--l2)}
+.cal-day.today{font-weight:700;color:var(--blue)}
+.cal-day.active{background:var(--blue);color:#fff;font-weight:600}
+.cal-day.has-entry{font-weight:600;color:var(--t1)}
+.cal-day.has-entry::after{content:'';position:absolute;bottom:2px;left:50%;transform:translateX(-50%);width:4px;height:4px;border-radius:50%;background:var(--teal)}
+.cal-day.empty{color:var(--t3);cursor:default}
+.cal-day.future{color:var(--b2);cursor:default}
 .day-type-menu{position:relative;display:inline-block}
 .day-type-dropdown{display:none;position:absolute;top:100%;left:0;margin-top:4px;background:var(--l1);border:1px solid var(--b1);border-radius:8px;box-shadow:var(--shadow-lg);z-index:50;overflow:hidden;min-width:120px}
 .day-type-dropdown.show{display:block}
@@ -315,21 +343,7 @@ input[type="range"]::-moz-range-thumb{width:22px;height:22px;border-radius:50%;b
 .mobile-menu button{display:flex;align-items:center;gap:8px;width:100%;padding:12px 16px;border:none;background:transparent;color:var(--t1);font-family:inherit;font-size:14px;text-align:left;cursor:pointer;transition:background .1s}
 .mobile-menu button:hover,.mobile-menu button:active{background:var(--l2)}
 
-/* ═══ FLOATING SAVE BUTTON ═══ */
-.fab-save{position:fixed;bottom:calc(72px + env(safe-area-inset-bottom));right:16px;width:52px;height:52px;border-radius:50%;border:none;background:var(--blue);color:#fff;font-size:22px;cursor:pointer;box-shadow:0 4px 16px rgba(0,115,174,.35);z-index:99;display:flex;align-items:center;justify-content:center;transition:all .2s;-webkit-tap-highlight-color:transparent}
-.fab-save:hover{transform:scale(1.08);box-shadow:0 6px 20px rgba(0,115,174,.45)}
-.fab-save:active{transform:scale(.95)}
-.fab-save.saving{background:var(--amber)}
-.fab-save.saved{background:var(--green)}
-@keyframes fabPulse{0%{box-shadow:0 4px 16px rgba(22,163,74,.3)}50%{box-shadow:0 4px 24px rgba(22,163,74,.6)}100%{box-shadow:0 4px 16px rgba(22,163,74,.3)}}
-.fab-save.saved{animation:fabPulse .6s ease}
-/* Save status strip */
-.save-strip{position:fixed;top:0;left:0;right:0;height:3px;z-index:200;transition:opacity .3s;opacity:0;pointer-events:none}
-.save-strip.saving{opacity:1;background:linear-gradient(90deg,var(--amber),var(--amber-d),var(--amber));animation:stripPulse 1s infinite}
-.save-strip.saved{opacity:1;background:var(--green);animation:none}
-@keyframes stripPulse{0%,100%{opacity:.6}50%{opacity:1}}
-/* Desktop: hide FAB, show sidebar save */
-@media(min-width:801px){.fab-save{bottom:24px;right:24px;width:48px;height:48px}}
+/* removed — replaced by top bar */
 
 .hidden{display:none!important}
 
@@ -403,11 +417,23 @@ input[type="range"]::-moz-range-thumb{width:22px;height:22px;border-radius:50%;b
 
 <!-- ═══ TAB: TODAY ═══ -->
   <section class="tab-content active" id="tab-today">
-    <div class="date-nav">
-      <button class="date-nav-btn" onclick="navigateDay(-1)" title="Previous day">&#8249;</button>
-      <div class="date-nav-label" id="dateNavLabel">Today<span class="date-sub" id="dateNavSub"></span></div>
-      <button class="date-nav-btn" onclick="navigateDay(1)" title="Next day">&#8250;</button>
-      <button class="date-nav-today hidden" id="todayBtn" onclick="navigateToToday()">Today</button>
+    <!-- TOP BAR -->
+    <div class="top-bar" id="topBar">
+      <button class="tb-back" onclick="navigateDay(-1)" title="Previous day">‹</button>
+      <div class="tb-date" id="tbDate" onclick="toggleCalendar()">
+        <div class="tb-date-main" id="tbDateMain">Today</div>
+        <div class="tb-date-sub" id="tbDateSub"></div>
+        <!-- Calendar dropdown -->
+        <div class="cal-dropdown" id="calDropdown">
+          <div class="cal-header">
+            <button onclick="calNav(-1);event.stopPropagation()">‹</button>
+            <span id="calMonthLabel"></span>
+            <button onclick="calNav(1);event.stopPropagation()">›</button>
+          </div>
+          <div class="cal-grid" id="calGrid"></div>
+        </div>
+      </div>
+      <button class="tb-today-jump hidden" id="todayBtn" onclick="navigateToToday()">Today</button>
       <div class="day-type-menu">
         <button class="day-type-pill" id="dayTypePill" data-type="Work Day" onclick="toggleDayTypeMenu()">Work Day</button>
         <div class="day-type-dropdown" id="dayTypeDropdown">
@@ -418,6 +444,7 @@ input[type="range"]::-moz-range-thumb{width:22px;height:22px;border-radius:50%;b
           <button class="day-type-option" onclick="setDayType('Travel')">Travel</button>
         </div>
       </div>
+      <button class="tb-save" id="tbSaveBtn" onclick="manualSave()" title="Save now">💾<span class="tb-save-dot idle" id="tbSaveDot"></span></button>
     </div>
 
     <div class="log-grid">
@@ -595,8 +622,6 @@ input[type="range"]::-moz-range-thumb{width:22px;height:22px;border-radius:50%;b
 
 </div>
 
-<div class="save-strip" id="saveStrip"></div>
-<button class="fab-save" id="fabSave" onclick="manualSave()" title="Save now">💾</button>
 <div class="toast-wrap" id="toastWrap"></div>
 
 <!-- SETUP MODAL -->
@@ -714,8 +739,10 @@ window.manualSave=async function(){saveDailyFields();showToast('Saved! ('+APP.en
 function updateSaveDot(s){
   const d=document.getElementById('saveDot');if(d)d.className='save-dot '+s;
   const t=document.getElementById('saveStatusText');if(t)t.textContent={idle:'Ready',saved:'Saved',saving:'Saving...',error:'Error'}[s]||s;
-  const fab=document.getElementById('fabSave');if(fab){fab.className='fab-save'+(s==='saving'?' saving':s==='saved'?' saved':'');fab.textContent=s==='saving'?'⏳':s==='saved'?'✓':'💾';if(s==='saved')setTimeout(()=>{fab.className='fab-save';fab.textContent='💾'},1500)}
-  const strip=document.getElementById('saveStrip');if(strip){strip.className='save-strip '+s;if(s==='saved')setTimeout(()=>strip.className='save-strip',1500)}
+  const tbBtn=document.getElementById('tbSaveBtn');
+  const tbDot=document.getElementById('tbSaveDot');
+  if(tbBtn){tbBtn.className='tb-save'+(s==='saving'?' saving':s==='saved'?' saved':'');tbBtn.childNodes[0].textContent=s==='saving'?'⏳':s==='saved'?'✓':'💾';if(s==='saved')setTimeout(()=>{tbBtn.className='tb-save';tbBtn.childNodes[0].textContent='💾'},1500)}
+  if(tbDot)tbDot.className='tb-save-dot '+s;
 }
 
 // ═══ 4. DATE NAV ═══
@@ -739,16 +766,54 @@ function resetMomentForm(){
 
 function updateDateNav(){
   const isToday=currentViewDate===todayStr();
-  const label=document.getElementById('dateNavLabel');
-  if(label)label.childNodes[0].textContent=isToday?'Today':formatDateFull(currentViewDate);
-  const sub=document.getElementById('dateNavSub');
-  if(sub)sub.textContent=isToday?formatDateFull(currentViewDate):'';
+  const main=document.getElementById('tbDateMain');
+  const sub=document.getElementById('tbDateSub');
+  if(main)main.textContent=isToday?'Today':formatDateFull(currentViewDate);
+  if(sub)sub.textContent=isToday?formatDateFull(currentViewDate):'Tap to open calendar';
   document.getElementById('todayBtn').classList.toggle('hidden',isToday);
   const entry=getEntry(currentViewDate);
   const dayType=entry?entry.dayType:getAutoDayType(currentViewDate);
   const pill=document.getElementById('dayTypePill');
   pill.setAttribute('data-type',dayType);pill.textContent=dayType;
 }
+
+// ═══ CALENDAR ═══
+let calViewMonth=null,calViewYear=null;
+window.toggleCalendar=function(e){
+  if(e)e.stopPropagation();
+  const dd=document.getElementById('calDropdown');
+  const showing=dd.classList.contains('show');
+  if(showing){dd.classList.remove('show');return}
+  const d=new Date(currentViewDate+'T12:00:00');
+  calViewMonth=d.getMonth();calViewYear=d.getFullYear();
+  renderCalendar();dd.classList.add('show');
+};
+window.calNav=function(delta){calViewMonth+=delta;if(calViewMonth>11){calViewMonth=0;calViewYear++}if(calViewMonth<0){calViewMonth=11;calViewYear--}renderCalendar()};
+function renderCalendar(){
+  const months=['January','February','March','April','May','June','July','August','September','October','November','December'];
+  document.getElementById('calMonthLabel').textContent=months[calViewMonth]+' '+calViewYear;
+  const grid=document.getElementById('calGrid');
+  grid.textContent='';
+  const dows=['M','T','W','T','F','S','S'];
+  dows.forEach(d=>{const el=document.createElement('div');el.className='cal-dow';el.textContent=d;grid.appendChild(el)});
+  const firstDay=new Date(calViewYear,calViewMonth,1);
+  let startDow=firstDay.getDay()-1;if(startDow<0)startDow=6;
+  const daysInMonth=new Date(calViewYear,calViewMonth+1,0).getDate();
+  const today=todayStr();
+  const entryDates=new Set(APP.entries.map(e=>e.date));
+  for(let i=0;i<startDow;i++){const el=document.createElement('button');el.className='cal-day empty';el.textContent='';el.disabled=true;grid.appendChild(el)}
+  for(let d=1;d<=daysInMonth;d++){
+    const ds=calViewYear+'-'+String(calViewMonth+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+    const el=document.createElement('button');el.className='cal-day';el.textContent=d;
+    if(ds===today)el.classList.add('today');
+    if(ds===currentViewDate)el.classList.add('active');
+    if(entryDates.has(ds))el.classList.add('has-entry');
+    if(ds>today)el.classList.add('future');
+    if(ds<=today){el.addEventListener('click',function(ev){ev.stopPropagation();saveDailyFields();currentViewDate=ds;loadDayView();document.getElementById('calDropdown').classList.remove('show')})}
+    grid.appendChild(el);
+  }
+}
+document.addEventListener('click',function(e){if(!e.target.closest('.cal-dropdown')&&!e.target.closest('.tb-date'))document.getElementById('calDropdown').classList.remove('show')});
 
 window.toggleDayTypeMenu=function(){document.getElementById('dayTypeDropdown').classList.toggle('show')};
 window.setDayType=function(type){
