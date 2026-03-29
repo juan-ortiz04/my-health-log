@@ -364,7 +364,32 @@ input[data-color="rose"]::-moz-range-thumb{border-color:var(--rose);background:v
 .mobile-menu button{display:flex;align-items:center;gap:8px;width:100%;padding:12px 16px;border:none;background:transparent;color:var(--t1);font-family:inherit;font-size:14px;text-align:left;cursor:pointer;transition:background .1s}
 .mobile-menu button:hover,.mobile-menu button:active{background:var(--l2)}
 
-/* removed — replaced by top bar */
+/* ═══ COACH CARD ═══ */
+.coach-card{border-radius:12px;padding:16px;margin-bottom:14px;animation:fadeIn .4s ease;position:relative;border-left:4px solid}
+.coach-card.mild{background:var(--green-d);border-color:var(--green);color:var(--green)}
+.coach-card.moderate{background:var(--amber-d);border-color:var(--amber)}
+.coach-card.high{background:var(--rose-d);border-color:var(--rose)}
+.coach-card.severe{background:var(--rose-d);border-color:var(--rose)}
+.coach-title{font-size:13px;font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.coach-msg{font-size:12.5px;line-height:1.6;color:var(--t1)}
+.coach-dismiss{position:absolute;top:8px;right:8px;background:none;border:none;color:var(--t3);cursor:pointer;font-size:14px;padding:2px 6px;border-radius:4px;-webkit-tap-highlight-color:transparent}
+.coach-dismiss:hover{background:rgba(0,0,0,.05)}
+.coach-actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.coach-action-btn{padding:6px 14px;border-radius:8px;border:1.5px solid var(--b2);background:var(--l1);color:var(--t1);font-size:11.5px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;-webkit-tap-highlight-color:transparent}
+.coach-action-btn:hover{border-color:var(--blue);color:var(--blue)}
+.coach-action-btn.active{background:var(--blue);color:#fff;border-color:var(--blue)}
+/* Breathing circle */
+.breath-container{text-align:center;padding:16px 0}
+.breath-circle{width:100px;height:100px;border-radius:50%;margin:0 auto 12px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:#fff;transition:transform .3s ease,background .3s ease}
+.breath-circle.inhale{transform:scale(1);background:var(--teal)}
+.breath-circle.hold{transform:scale(1.15);background:var(--blue)}
+.breath-circle.exhale{transform:scale(0.7);background:var(--violet)}
+.breath-step{font-size:11px;color:var(--t3);margin-top:4px}
+.breath-done{font-size:13px;font-weight:600;color:var(--green);margin-top:8px}
+/* Grounding */
+.ground-steps{list-style:none;padding:0;margin:10px 0 0}
+.ground-steps li{font-size:12px;padding:4px 0;color:var(--t2);display:flex;align-items:center;gap:6px}
+.ground-steps li span{font-size:14px}
 
 .hidden{display:none!important}
 
@@ -496,6 +521,9 @@ input[data-color="rose"]::-moz-range-thumb{border-color:var(--rose);background:v
             <button type="button" class="moment-save-btn" onclick="saveMoment()">Save Moment</button>
           </div>
         </div>
+
+        <!-- COACH CARD (appears after saving high-symptom moment) -->
+        <div id="coachCard"></div>
 
         <!-- TODAY'S MOMENTS TIMELINE -->
         <div class="card">
@@ -852,6 +880,7 @@ window.saveMoment=function(){
   resetMomentForm();
   renderMomentTimeline();updateGlance();
   showToast('Moment saved ('+moment.time+')','success');
+  showCoachCard(getMomentScore(moment));
 };
 
 window.deleteMoment=function(momentId){
@@ -910,6 +939,120 @@ function renderMomentTimeline(){
   });
   container.appendChild(tl);
 }
+
+// ═══ 5b. COACH ENGINE ═══
+let lastReassuranceIdx=-1;
+const REASSURANCES=[
+  "This will pass. Flares are temporary — your data confirms it.",
+  "You've handled days like this before. You're still here, and you'll get through this one too.",
+  "Tinnitus intensity fluctuates. This is a peak, not a new baseline.",
+  "Focus on what you can control right now: your breathing, a glass of water, rest.",
+  "Your body's stress response amplifies the signal. Calming it down reduces perceived volume.",
+  "Be gentle with yourself. Pain is not weakness — rest is recovery.",
+  "You don't have to do anything right now except breathe. Everything else can wait."
+];
+const MILD_MSGS=[
+  "Low symptoms right now. Good.",
+  "Looking manageable. Keep doing what you're doing.",
+  "Mild reading. A good moment to log and move on.",
+  "Steady. Your awareness is your strength."
+];
+const MOD_TIPS=[
+  "Stay hydrated — drink a glass of water now.",
+  "A gentle 10-minute walk can help reset your nervous system.",
+  "Step away from screens for a few minutes.",
+  "Check your posture — tension in your neck and jaw amplifies symptoms.",
+  "Try putting on background sounds (rain, white noise) to soften the tinnitus."
+];
+const BREATHINGS=[
+  {name:'4-7-8 Breathing',steps:[{phase:'inhale',label:'Breathe in',sec:4},{phase:'hold',label:'Hold',sec:7},{phase:'exhale',label:'Breathe out',sec:8}],cycles:4},
+  {name:'Box Breathing',steps:[{phase:'inhale',label:'Breathe in',sec:4},{phase:'hold',label:'Hold',sec:4},{phase:'exhale',label:'Breathe out',sec:4},{phase:'hold',label:'Hold',sec:4}],cycles:4},
+  {name:'Slow Exhale',steps:[{phase:'inhale',label:'Breathe in',sec:3},{phase:'exhale',label:'Slow exhale',sec:6}],cycles:6}
+];
+let breathingTimer=null;
+
+function showCoachCard(score){
+  const container=document.getElementById('coachCard');
+  container.textContent='';
+  if(breathingTimer){clearTimeout(breathingTimer);breathingTimer=null}
+  if(score<=13){
+    // Mild — brief positive, auto-fade
+    const card=document.createElement('div');card.className='coach-card mild';
+    card.innerHTML='<div class="coach-msg">'+MILD_MSGS[Math.floor(Math.random()*MILD_MSGS.length)]+'</div>';
+    container.appendChild(card);
+    setTimeout(()=>{card.style.opacity='0';card.style.transition='opacity .5s';setTimeout(()=>container.textContent='',500)},4000);
+    return;
+  }
+  if(score<=20){
+    // Moderate — tip + suggestion
+    const card=document.createElement('div');card.className='coach-card moderate';
+    const tip=MOD_TIPS[Math.floor(Math.random()*MOD_TIPS.length)];
+    card.innerHTML='<button class="coach-dismiss" onclick="dismissCoach()">×</button><div class="coach-title">💛 Moderate symptoms</div><div class="coach-msg">'+sanitizeText(tip)+'</div>';
+    container.appendChild(card);
+    return;
+  }
+  // High / Severe — full coaching
+  const isSevere=score>30;
+  const card=document.createElement('div');card.className='coach-card '+(isSevere?'severe':'high');
+  // Reassurance
+  let ri=Math.floor(Math.random()*REASSURANCES.length);
+  if(ri===lastReassuranceIdx)ri=(ri+1)%REASSURANCES.length;
+  lastReassuranceIdx=ri;
+  let html='<button class="coach-dismiss" onclick="dismissCoach()">×</button>';
+  html+='<div class="coach-title">'+(isSevere?'🔴 High distress — let me help':'🟠 Elevated symptoms')+'</div>';
+  html+='<div class="coach-msg" style="margin-bottom:10px">'+sanitizeText(REASSURANCES[ri])+'</div>';
+  html+='<div class="coach-actions">';
+  html+='<button class="coach-action-btn" onclick="startBreathing()">🫁 Breathing exercise</button>';
+  if(isSevere)html+='<button class="coach-action-btn" onclick="showGrounding()">🧘 5-4-3-2-1 Grounding</button>';
+  html+='</div>';
+  html+='<div id="coachExerciseArea"></div>';
+  card.innerHTML=html;
+  container.appendChild(card);
+}
+
+window.startBreathing=function(){
+  const area=document.getElementById('coachExerciseArea');if(!area)return;
+  const ex=BREATHINGS[Math.floor(Math.random()*BREATHINGS.length)];
+  area.innerHTML='<div class="breath-container"><div class="breath-circle inhale" id="breathCircle">Ready</div><div class="breath-step" id="breathStep">'+sanitizeText(ex.name)+' — tap to begin</div></div>';
+  const circle=document.getElementById('breathCircle');
+  const stepEl=document.getElementById('breathStep');
+  let started=false;
+  circle.style.cursor='pointer';
+  circle.addEventListener('click',function go(){
+    if(started)return;started=true;circle.style.cursor='default';
+    let cycle=0,stepIdx=0;
+    function runStep(){
+      if(cycle>=ex.cycles){
+        circle.className='breath-circle inhale';circle.textContent='Done';
+        stepEl.textContent='Well done. Take a moment before moving on.';
+        area.insertAdjacentHTML('beforeend','<div class="breath-done">✓ '+ex.cycles+' cycles complete</div>');
+        return;
+      }
+      const s=ex.steps[stepIdx];
+      circle.className='breath-circle '+s.phase;
+      circle.textContent=s.label;
+      stepEl.textContent='Cycle '+(cycle+1)+' of '+ex.cycles;
+      let countdown=s.sec;
+      function tick(){
+        if(countdown<=0){stepIdx++;if(stepIdx>=ex.steps.length){stepIdx=0;cycle++}runStep();return}
+        circle.textContent=s.label+' ('+countdown+')';
+        countdown--;breathingTimer=setTimeout(tick,1000);
+      }
+      tick();
+    }
+    runStep();
+  },{once:true});
+};
+
+window.showGrounding=function(){
+  const area=document.getElementById('coachExerciseArea');if(!area)return;
+  area.innerHTML='<div style="margin-top:10px"><div class="coach-title">🧘 5-4-3-2-1 Grounding</div><div class="coach-msg">Focus on your senses to anchor yourself in the present:</div><ul class="ground-steps"><li><span>👁️</span> <b>5</b> things you can see</li><li><span>✋</span> <b>4</b> things you can touch right now</li><li><span>👂</span> <b>3</b> sounds you can hear (other than tinnitus)</li><li><span>👃</span> <b>2</b> things you can smell</li><li><span>👅</span> <b>1</b> thing you can taste</li></ul><div class="coach-msg" style="margin-top:8px;font-style:italic">Take your time with each one. There is no rush.</div></div>';
+};
+
+window.dismissCoach=function(){
+  if(breathingTimer){clearTimeout(breathingTimer);breathingTimer=null}
+  document.getElementById('coachCard').textContent='';
+};
 
 // ═══ 6. DAILY FIELDS ═══
 function getPreviousDayEntry(){
