@@ -988,40 +988,27 @@ function showCoachCard(score){
     setTimeout(()=>{card.style.opacity='0';card.style.transition='opacity .5s';setTimeout(()=>container.textContent='',500)},4000);
     return;
   }
-  if(score<=20){
-    // Moderate — reassurance + action
-    const card=document.createElement('div');card.className='coach-card moderate';
-    let ri=Math.floor(Math.random()*REASSURANCES.length);
-    if(ri===lastReassuranceIdx)ri=(ri+1)%REASSURANCES.length;lastReassuranceIdx=ri;
-    const action=ACTION_SUGGESTIONS[Math.floor(Math.random()*ACTION_SUGGESTIONS.length)];
-    card.innerHTML='<button class="coach-dismiss" onclick="dismissCoach()">×</button><div class="coach-title">💛 Moderate symptoms</div><div class="coach-msg">'+sanitizeText(REASSURANCES[ri])+'</div><div class="coach-msg" style="margin-top:8px;font-weight:600">💡 '+sanitizeText(action)+'</div>';
-    container.appendChild(card);
-    return;
-  }
-  // High / Severe — full coaching
-  const isSevere=score>30;
-  const card=document.createElement('div');card.className='coach-card '+(isSevere?'severe':'high');
-  // Reassurance
-  let ri=Math.floor(Math.random()*REASSURANCES.length);
-  if(ri===lastReassuranceIdx)ri=(ri+1)%REASSURANCES.length;
-  lastReassuranceIdx=ri;
+  // Moderate, High, Severe — all get 4 expandable sections
+  const isSevere=score>30;const isHigh=score>20;
+  const tier=isHigh?(isSevere?'severe':'high'):'moderate';
+  const title=isSevere?'🔴 High distress — I\'m here to help':isHigh?'🟠 Elevated symptoms':'💛 Moderate symptoms';
+  const card=document.createElement('div');card.className='coach-card '+tier;
   let html='<button class="coach-dismiss" onclick="dismissCoach()">×</button>';
-  html+='<div class="coach-title">'+(isSevere?'🔴 High distress — let me help':'🟠 Elevated symptoms')+'</div>';
-  const action=ACTION_SUGGESTIONS[Math.floor(Math.random()*ACTION_SUGGESTIONS.length)];
-  html+='<div class="coach-msg" style="margin-bottom:6px">'+sanitizeText(REASSURANCES[ri])+'</div>';
-  html+='<div class="coach-msg" style="margin-bottom:10px;font-weight:600">💡 '+sanitizeText(action)+'</div>';
-  html+='<details class="coach-expand"><summary>🫁 Breathing Exercise — tap to start</summary><div id="coachBreathArea"></div></details>';
-  html+='<details class="coach-expand"><summary>🧘 5-4-3-2-1 Grounding — tap to open</summary><div id="coachGroundArea"></div></details>';
+  html+='<div class="coach-title">'+title+'</div>';
+  html+='<details class="coach-expand"><summary>🫁 Breathing Exercise</summary><div id="coachBreathArea"></div></details>';
+  html+='<details class="coach-expand"><summary>🧘 5-4-3-2-1 Grounding</summary><div id="coachGroundArea"></div></details>';
+  html+='<details class="coach-expand"><summary>💙 Reassurance</summary><div id="coachReassureArea"></div></details>';
+  html+='<details class="coach-expand"><summary>💡 Actions You Can Take</summary><div id="coachActionsArea"></div></details>';
   card.innerHTML=html;
   container.appendChild(card);
-  // Auto-render content when details are opened
   card.querySelectorAll('details').forEach(d=>{
     d.addEventListener('toggle',()=>{
       if(!d.open)return;
-      const breathArea=d.querySelector('#coachBreathArea');
-      const groundArea=d.querySelector('#coachGroundArea');
-      if(breathArea&&!breathArea.hasChildNodes())renderBreathingInto(breathArea);
-      if(groundArea&&!groundArea.hasChildNodes())renderGroundingInto(groundArea);
+      const el=d.querySelector('div');if(!el||el.hasChildNodes())return;
+      if(el.id==='coachBreathArea')renderBreathingInto(el);
+      if(el.id==='coachGroundArea')renderGroundingInto(el);
+      if(el.id==='coachReassureArea')renderReassuranceInto(el);
+      if(el.id==='coachActionsArea')renderActionsInto(el);
     });
   });
 }
@@ -1048,6 +1035,20 @@ function renderBreathingInto(area){
 
 function renderGroundingInto(area){
   area.innerHTML='<div class="coach-msg">Focus on your senses to anchor yourself in the present:</div><ul class="ground-steps"><li><span>👁️</span> <b>5</b> things you can see</li><li><span>✋</span> <b>4</b> things you can touch right now</li><li><span>👂</span> <b>3</b> sounds you can hear (other than tinnitus)</li><li><span>👃</span> <b>2</b> things you can smell</li><li><span>👅</span> <b>1</b> thing you can taste</li></ul><div class="coach-msg" style="margin-top:8px;font-style:italic">Take your time with each one. There is no rush.</div>';
+}
+
+function renderReassuranceInto(area){
+  let html='<ul class="ground-steps">';
+  REASSURANCES.forEach(r=>{html+='<li><span>🤍</span> '+sanitizeText(r)+'</li>'});
+  html+='</ul>';
+  area.innerHTML=html;
+}
+
+function renderActionsInto(area){
+  let html='<ul class="ground-steps">';
+  ACTION_SUGGESTIONS.forEach(a=>{html+='<li><span>→</span> '+sanitizeText(a)+'</li>'});
+  html+='</ul>';
+  area.innerHTML=html;
 }
 
 window.dismissCoach=function(){
