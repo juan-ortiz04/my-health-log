@@ -941,7 +941,21 @@ window.renderHistory=function(){
 };
 
 // ═══ 12. EXPORT / IMPORT ═══
-window.exportJSON=function(){saveDailyFields();const d={version:VERSION,entries:APP.entries,savedMedications:APP.savedMedications,savedInterventions:APP.savedInterventions,settings:APP.settings,exportDate:new Date().toISOString()};const b=new Blob([JSON.stringify(d,null,2)],{type:'application/json'});const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download='menieres-log-'+todayStr()+'.json';document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(u);showToast('Exported '+APP.entries.length+' entries.','success')};
+window.exportJSON=async function(){
+  saveDailyFields();
+  const d={version:VERSION,entries:APP.entries,savedMedications:APP.savedMedications,savedInterventions:APP.savedInterventions,settings:APP.settings,exportDate:new Date().toISOString()};
+  const json=JSON.stringify(d,null,2);
+  const filename='menieres-log-'+todayStr()+'.json';
+  const blob=new Blob([json],{type:'application/json'});
+  const file=new File([blob],filename,{type:'application/json'});
+  // Try Web Share API first (iOS Share Sheet → Save to Files → iCloud)
+  if(navigator.canShare&&navigator.canShare({files:[file]})){
+    try{await navigator.share({files:[file],title:'Meniere\'s Log Export',text:'Backup of '+APP.entries.length+' entries'});showToast('Shared! Save to iCloud via Files.','success');return}catch(e){if(e.name==='AbortError')return}
+  }
+  // Fallback: regular download (desktop)
+  const u=URL.createObjectURL(blob);const a=document.createElement('a');a.href=u;a.download=filename;document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(u);
+  showToast('Exported '+APP.entries.length+' entries.','success');
+};
 window.importJSON=function(ev){const f=ev.target.files[0];if(!f)return;const r=new FileReader();r.onload=function(e){try{const d=JSON.parse(e.target.result);if(applyLoadedData(d)){persistData();loadDayView();updateGlance();renderHistory();showToast('Imported '+APP.entries.length+' entries.','success')}else{showToast('Unrecognised format.','error')}}catch(err){showToast('Import failed: '+err.message,'error')}};r.readAsText(f);ev.target.value=''};
 
 // ═══ 13. THEME ═══
