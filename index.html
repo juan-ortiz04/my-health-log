@@ -193,9 +193,12 @@ input[type="range"]::-moz-range-thumb{width:22px;height:22px;border-radius:50%;b
 .tl-header{display:flex;align-items:center;gap:8px;margin-bottom:4px}
 .tl-time{font-size:11px;font-weight:600;color:var(--teal)}
 .tl-score{font-size:11px;font-weight:700;padding:1px 6px;border-radius:4px}
-.tl-bars{display:flex;gap:4px;flex:1}
+.tl-bars-detail{display:flex;flex-direction:column;gap:3px;margin-top:6px}
+.tl-bar-row{display:flex;align-items:center;gap:6px}
+.tl-bar-label{font-size:10px;font-weight:700;width:12px;text-align:center;flex-shrink:0}
 .tl-bar{height:6px;border-radius:3px;flex:1;position:relative}
 .tl-bar-fill{height:100%;border-radius:3px;transition:width .2s}
+.tl-bar-val{font-size:10px;font-weight:600;width:16px;text-align:right;color:var(--t2);flex-shrink:0}
 .tl-note{font-size:11.5px;color:var(--t2);margin-top:2px}
 .tl-delete{position:absolute;top:6px;right:6px;background:none;border:none;color:var(--t3);cursor:pointer;font-size:13px;padding:2px;border-radius:4px;opacity:0;transition:opacity .15s}
 .timeline-item:hover .tl-delete{opacity:1}
@@ -860,16 +863,20 @@ function renderMomentTimeline(){
     const item=document.createElement('div');item.className='timeline-item';
     const score=getMomentScore(m);const tier=getTierClass(score);
     const colors={tinnitus:'var(--teal)',earFullness:'var(--blue)',radiation:'var(--violet)',distress:'var(--rose)'};
-    let barsHTML='';FIELDS.forEach(f=>{
-      const pct=((m[f]||0)/10)*100;
-      barsHTML+='<div class="tl-bar" style="background:var(--l3)"><div class="tl-bar-fill" style="width:'+pct+'%;background:'+colors[f]+'"></div></div>';
-    });
+    const labels={tinnitus:'T',earFullness:'F',radiation:'R',distress:'D'};
     const header=document.createElement('div');header.className='tl-header';
     const timeSpan=document.createElement('span');timeSpan.className='tl-time';timeSpan.textContent=m.time;
     const scoreSpan=document.createElement('span');scoreSpan.className='tl-score tier-badge '+tier;scoreSpan.textContent=score+'/40';
-    const barsDiv=document.createElement('div');barsDiv.className='tl-bars';barsDiv.innerHTML=barsHTML;
-    header.appendChild(timeSpan);header.appendChild(scoreSpan);header.appendChild(barsDiv);
+    header.appendChild(timeSpan);header.appendChild(scoreSpan);
     item.appendChild(header);
+    const barsDiv=document.createElement('div');barsDiv.className='tl-bars-detail';
+    FIELDS.forEach(f=>{
+      const v=m[f]||0;const pct=(v/10)*100;
+      const row=document.createElement('div');row.className='tl-bar-row';
+      row.innerHTML='<span class="tl-bar-label" style="color:'+colors[f]+'">'+labels[f]+'</span><div class="tl-bar" style="background:var(--l3)"><div class="tl-bar-fill" style="width:'+pct+'%;background:'+colors[f]+'"></div></div><span class="tl-bar-val">'+v+'</span>';
+      barsDiv.appendChild(row);
+    });
+    item.appendChild(barsDiv);
     if(m.note){const note=document.createElement('div');note.className='tl-note';note.textContent=m.note;item.appendChild(note)}
     const del=document.createElement('button');del.className='tl-delete';del.textContent='×';del.title='Delete moment';
     const mid=m.id;del.addEventListener('click',e=>{e.stopPropagation();deleteMoment(mid)});
