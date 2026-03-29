@@ -315,6 +315,22 @@ input[type="range"]::-moz-range-thumb{width:22px;height:22px;border-radius:50%;b
 .mobile-menu button{display:flex;align-items:center;gap:8px;width:100%;padding:12px 16px;border:none;background:transparent;color:var(--t1);font-family:inherit;font-size:14px;text-align:left;cursor:pointer;transition:background .1s}
 .mobile-menu button:hover,.mobile-menu button:active{background:var(--l2)}
 
+/* ═══ FLOATING SAVE BUTTON ═══ */
+.fab-save{position:fixed;bottom:calc(72px + env(safe-area-inset-bottom));right:16px;width:52px;height:52px;border-radius:50%;border:none;background:var(--blue);color:#fff;font-size:22px;cursor:pointer;box-shadow:0 4px 16px rgba(0,115,174,.35);z-index:99;display:flex;align-items:center;justify-content:center;transition:all .2s;-webkit-tap-highlight-color:transparent}
+.fab-save:hover{transform:scale(1.08);box-shadow:0 6px 20px rgba(0,115,174,.45)}
+.fab-save:active{transform:scale(.95)}
+.fab-save.saving{background:var(--amber)}
+.fab-save.saved{background:var(--green)}
+@keyframes fabPulse{0%{box-shadow:0 4px 16px rgba(22,163,74,.3)}50%{box-shadow:0 4px 24px rgba(22,163,74,.6)}100%{box-shadow:0 4px 16px rgba(22,163,74,.3)}}
+.fab-save.saved{animation:fabPulse .6s ease}
+/* Save status strip */
+.save-strip{position:fixed;top:0;left:0;right:0;height:3px;z-index:200;transition:opacity .3s;opacity:0;pointer-events:none}
+.save-strip.saving{opacity:1;background:linear-gradient(90deg,var(--amber),var(--amber-d),var(--amber));animation:stripPulse 1s infinite}
+.save-strip.saved{opacity:1;background:var(--green);animation:none}
+@keyframes stripPulse{0%,100%{opacity:.6}50%{opacity:1}}
+/* Desktop: hide FAB, show sidebar save */
+@media(min-width:801px){.fab-save{bottom:24px;right:24px;width:48px;height:48px}}
+
 .hidden{display:none!important}
 
 /* ═══ RESPONSIVE ═══ */
@@ -579,6 +595,8 @@ input[type="range"]::-moz-range-thumb{width:22px;height:22px;border-radius:50%;b
 
 </div>
 
+<div class="save-strip" id="saveStrip"></div>
+<button class="fab-save" id="fabSave" onclick="manualSave()" title="Save now">💾</button>
 <div class="toast-wrap" id="toastWrap"></div>
 
 <!-- SETUP MODAL -->
@@ -599,7 +617,7 @@ input[type="range"]::-moz-range-thumb{width:22px;height:22px;border-radius:50%;b
 if(!crypto.randomUUID){crypto.randomUUID=function(){return'10000000-1000-4000-8000-100000000000'.replace(/[018]/g,c=>(c^crypto.getRandomValues(new Uint8Array(1))[0]&15>>c/4).toString(16))}}
 
 // ═══ 1. CONSTANTS ═══
-const VERSION=3,LS_KEY='menieres_v3',LS_BACKUP='menieres_v3_bak',IDB_NAME='menieres_v3_idb',IDB_STORE='handles',IDB_KEY='fsaHandle',AUTOSAVE_MS=1200;
+const VERSION=3,LS_KEY='menieres_v3',LS_BACKUP='menieres_v3_bak',IDB_NAME='menieres_v3_idb',IDB_STORE='handles',IDB_KEY='fsaHandle',AUTOSAVE_MS=800;
 const EXERCISE_TYPES=['Road Cycling','Indoor Cycling (Zwift)','Treadmill','Walking','Running','Swimming','Weights','Stretching','Yoga','Pilates','Tai Chi','Vestibular Rehab','Other'];
 const EXERCISE_TOD=['Morning','Midday','Afternoon','Evening'];
 const SQ_LABELS=['Very Poor','Poor','Average','Good','Sound','Prime'];
@@ -690,8 +708,15 @@ function applyLoadedData(data){
 }
 
 function scheduleSave(){isDirty=true;clearTimeout(saveTimeout);saveTimeout=setTimeout(()=>saveDailyFields(),AUTOSAVE_MS)}
+// Continuous autosave every 3 seconds — never lose data
+setInterval(()=>{const entry=getEntry(currentViewDate);if(entry)saveDailyFields()},3000);
 window.manualSave=async function(){saveDailyFields();showToast('Saved! ('+APP.entries.length+' entries)','success')};
-function updateSaveDot(s){const d=document.getElementById('saveDot');if(d)d.className='save-dot '+s;const t=document.getElementById('saveStatusText');if(t)t.textContent={idle:'Ready',saved:'Saved',saving:'Saving...',error:'Error'}[s]||s}
+function updateSaveDot(s){
+  const d=document.getElementById('saveDot');if(d)d.className='save-dot '+s;
+  const t=document.getElementById('saveStatusText');if(t)t.textContent={idle:'Ready',saved:'Saved',saving:'Saving...',error:'Error'}[s]||s;
+  const fab=document.getElementById('fabSave');if(fab){fab.className='fab-save'+(s==='saving'?' saving':s==='saved'?' saved':'');fab.textContent=s==='saving'?'⏳':s==='saved'?'✓':'💾';if(s==='saved')setTimeout(()=>{fab.className='fab-save';fab.textContent='💾'},1500)}
+  const strip=document.getElementById('saveStrip');if(strip){strip.className='save-strip '+s;if(s==='saved')setTimeout(()=>strip.className='save-strip',1500)}
+}
 
 // ═══ 4. DATE NAV ═══
 window.navigateDay=function(delta){saveDailyFields();const d=new Date(currentViewDate+'T12:00:00');d.setDate(d.getDate()+delta);const nd=d.toISOString().slice(0,10);if(nd>todayStr()){showToast('Cannot go to future.','info');return}currentViewDate=nd;loadDayView();};
