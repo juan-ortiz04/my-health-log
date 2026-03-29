@@ -743,9 +743,11 @@ window.saveMoment=function(){
   const entry=getOrCreateEntry(currentViewDate);
   entry.moments.push(moment);
   entry.moments.sort((a,b)=>a.time.localeCompare(b.time));
-  // Fully reset form for next moment
+  // Collect daily fields + persist everything together
+  saveDailyFields();
+  // Reset form for next moment
   resetMomentForm();
-  renderMomentTimeline();updateGlance();persistData();
+  renderMomentTimeline();updateGlance();
   showToast('Moment saved ('+moment.time+')','success');
 };
 
@@ -808,6 +810,7 @@ function saveDailyFields(){
   entry.interventions=collectInterventionBlocks();
   entry.notes=document.getElementById('notesField').value.trim();
   updateSavedItems(entry);
+  persistData();
 }
 
 window.selectSleep=function(btn){document.querySelectorAll('.sq-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');currentSleepQuality=SQ_REVERSE[parseInt(btn.getAttribute('data-val'))]||null;scheduleSave()};
