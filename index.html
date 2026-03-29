@@ -794,7 +794,7 @@ function renderCalendar(){
   let startDow=firstDay.getDay()-1;if(startDow<0)startDow=6;
   const daysInMonth=new Date(calViewYear,calViewMonth+1,0).getDate();
   const today=todayStr();
-  const entryDates=new Set(APP.entries.map(e=>e.date));
+  const entryDates=new Set(APP.entries.filter(e=>(e.moments&&e.moments.length)||e.sleepQuality||e.notes||(e.exercises&&e.exercises.length)||(e.medications&&e.medications.length)).map(e=>e.date));
   for(let i=0;i<startDow;i++){const el=document.createElement('button');el.className='cal-day empty';el.textContent='';el.disabled=true;grid.appendChild(el)}
   for(let d=1;d<=daysInMonth;d++){
     const ds=calViewYear+'-'+String(calViewMonth+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
@@ -914,13 +914,22 @@ function loadDailyFieldsIntoForm(){
 }
 
 function saveDailyFields(){
-  const entry=getOrCreateEntry(currentViewDate);
-  entry.sleepQuality=currentSleepQuality;
-  entry.exercises=collectExerciseBlocks();
-  entry.medications=collectMedBlocks();
-  entry.interventions=collectInterventionBlocks();
-  entry.notes=document.getElementById('notesField').value.trim();
-  updateSavedItems(entry);
+  const sq=currentSleepQuality;
+  const ex=collectExerciseBlocks();
+  const meds=collectMedBlocks();
+  const intv=collectInterventionBlocks();
+  const notes=document.getElementById('notesField').value.trim();
+  // Only create entry if there's actual data (not just from browsing)
+  const hasData=sq||ex.length||meds.length||intv.length||notes;
+  const entry=getEntry(currentViewDate);
+  if(!entry&&!hasData)return; // Don't create empty entries
+  const target=entry||getOrCreateEntry(currentViewDate);
+  target.sleepQuality=sq;
+  target.exercises=ex;
+  target.medications=meds;
+  target.interventions=intv;
+  target.notes=notes;
+  updateSavedItems(target);
   persistData();
 }
 
@@ -1127,6 +1136,8 @@ async function init(){
   if(!loaded)loaded=loadFromLS();
   if(loaded&&storageMode==='none')storageMode='localStorage';
   if(!loaded&&storageMode==='none')document.getElementById('setupModal').classList.add('show');
+  // Clean up any empty entries from previous browsing
+  APP.entries=APP.entries.filter(e=>(e.moments&&e.moments.length)||e.sleepQuality||e.notes||(e.exercises&&e.exercises.length)||(e.medications&&e.medications.length));
   document.getElementById('momentTime').value=nowTime();
   updateMomentPreview();
   loadDayView();
