@@ -237,16 +237,8 @@ input[data-color="rose"]::-moz-range-thumb{border-color:var(--rose);background:v
 .dyn-block input[type="text"]{flex:1;min-width:90px}
 .dyn-block input[type="time"]{width:90px}
 .dyn-block .dose-input{width:80px;flex:none}
-.dyn-btn-group{display:flex;gap:12px;flex-shrink:0;margin-left:4px}
-.dyn-remove{width:32px;height:32px;border-radius:8px;border:1px solid var(--b1);background:transparent;color:var(--t3);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0;-webkit-tap-highlight-color:transparent}
+.dyn-remove{width:28px;height:28px;border-radius:7px;border:1px solid var(--b1);background:transparent;color:var(--t3);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0;-webkit-tap-highlight-color:transparent;margin-left:4px}
 .dyn-remove:hover,.dyn-remove:active{background:var(--rose-d);color:var(--rose);border-color:var(--rose)}
-/* Locked state for saved blocks */
-.dyn-block.locked select,.dyn-block.locked input{pointer-events:none;opacity:.7}
-.dyn-block.locked .dyn-remove{display:none}
-.dyn-unlock{width:32px;height:32px;border-radius:8px;border:1px solid var(--b1);background:transparent;color:var(--t3);cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0;-webkit-tap-highlight-color:transparent}
-.dyn-unlock:hover,.dyn-unlock:active{background:var(--blue-d);color:var(--blue);border-color:var(--blue)}
-.dyn-block.locked .dyn-unlock{display:flex}
-.dyn-block:not(.locked) .dyn-unlock{display:none}
 .add-btn{display:inline-flex;align-items:center;gap:5px;padding:6px 12px;border-radius:7px;border:1.5px dashed var(--b2);background:transparent;color:var(--t3);cursor:pointer;font-family:inherit;font-size:11px;font-weight:500;transition:all .15s;margin-top:3px}
 .add-btn:hover{border-color:var(--blue);color:var(--blue);background:var(--blue-g)}
 
@@ -565,7 +557,7 @@ input[data-color="rose"]::-moz-range-thumb{border-color:var(--rose);background:v
         </div>
 
         <div class="card" id="cardNotes">
-          <div class="card-title" onclick="toggleCard('cardNotes')"><span class="card-icon">📝</span> Daily Notes <button type="button" class="dyn-unlock" id="notesEditBtn" onclick="event.stopPropagation();toggleNotesEdit()" style="display:none;margin-left:auto" title="Edit notes">✏️</button><span class="card-chevron">▼</span></div>
+          <div class="card-title" onclick="toggleCard('cardNotes')"><span class="card-icon">📝</span> Daily Notes <span class="card-chevron">▼</span></div>
           <div class="card-body"><textarea class="notes-area" id="notesField" placeholder="Triggers, mood, food, weather, events — anything relevant today..." oninput="onNotesInput()"></textarea></div>
         </div>
       </div>
@@ -1098,8 +1090,7 @@ function loadDailyFieldsIntoForm(){
     if(entry.medications&&entry.medications.length)entry.medications.forEach(m=>addMedBlock(m));
     if(entry.interventions&&entry.interventions.length)entry.interventions.forEach(iv=>addInterventionBlock(iv));
     if(entry.notes)document.getElementById('notesField').value=entry.notes;
-    autoResizeNotes();lockNotesIfNeeded();
-  }else{
+    autoResizeNotes();  }else{
     // New day — carry forward meds, exercise, interventions from previous day
     const prev=getPreviousDayEntry();
     if(prev){
@@ -1108,8 +1099,7 @@ function loadDailyFieldsIntoForm(){
       if(prev.interventions&&prev.interventions.length)prev.interventions.forEach(iv=>addInterventionBlock({name:iv.name}));
     }
   }
-  lockNotesIfNeeded();
-}
+  }
 
 function saveDailyFields(){
   const sq=currentSleepQuality;
@@ -1150,32 +1140,14 @@ window.selectSleep=function(btn){
   scheduleSave();
 };
 
-// Notes lock: once saved, lock notes to prevent accidental edits
-let notesLocked=false;
 window.onNotesInput=function(){autoResizeNotes();scheduleSave()};
 function autoResizeNotes(){const el=document.getElementById('notesField');if(!el)return;el.style.height='auto';el.style.height=el.scrollHeight+'px'}
-window.toggleNotesEdit=function(){
-  const field=document.getElementById('notesField');
-  const btn=document.getElementById('notesEditBtn');
-  notesLocked=false;field.readOnly=false;field.focus();
-  btn.style.display='none';
-};
-function lockNotesIfNeeded(){
-  const field=document.getElementById('notesField');
-  const btn=document.getElementById('notesEditBtn');
-  if(field.value.trim()){notesLocked=true;field.readOnly=true;btn.style.display='flex'}
-  else{notesLocked=false;field.readOnly=false;btn.style.display='none'}
-}
 
 // ═══ 7. DYNAMIC BLOCKS (with lock/unlock/confirm) ═══
-function addBlockButtons(div,isExisting){
-  const group=document.createElement('div');group.className='dyn-btn-group';
-  const unlock=document.createElement('button');unlock.type='button';unlock.className='dyn-unlock';unlock.textContent='✏️';unlock.title='Edit';
-  unlock.addEventListener('click',()=>{div.classList.remove('locked');div.querySelector('select,input')?.focus()});
+function addBlockButtons(div){
   const rm=document.createElement('button');rm.type='button';rm.className='dyn-remove';rm.textContent='×';rm.title='Delete';
   rm.addEventListener('click',()=>{if(!confirm('Delete this item?'))return;div.remove();scheduleSave()});
-  group.appendChild(unlock);group.appendChild(rm);div.appendChild(group);
-  if(isExisting)div.classList.add('locked');
+  div.appendChild(rm);
 }
 
 window.addExerciseBlock=function(data){
@@ -1185,7 +1157,7 @@ window.addExerciseBlock=function(data){
   const tod=document.createElement('select');tod.innerHTML='<option value="">When...</option>'+EXERCISE_TOD.map(t=>'<option'+(data&&data.timeOfDay===t?' selected':'')+'>'+t+'</option>').join('');
   [sel,dur,tod].forEach(el=>el.addEventListener('change',()=>scheduleSave()));
   div.appendChild(sel);div.appendChild(dur);div.appendChild(tod);
-  addBlockButtons(div,!!data);c.appendChild(div);
+  addBlockButtons(div);c.appendChild(div);
 };
 const DEFAULT_MEDS=['Serc','Prednisolone','Zopiclone','Diphenhydramine','Rivotril'];
 const MED_TIMES=['Morning','Afternoon','Evening'];
@@ -1204,14 +1176,14 @@ window.addMedBlock=function(data){
   when.addEventListener('change',()=>scheduleSave());
   dose.addEventListener('input',()=>scheduleSave());
   div.appendChild(sel);div.appendChild(customInput);div.appendChild(dose);div.appendChild(when);
-  addBlockButtons(div,!!data);c.appendChild(div);
+  addBlockButtons(div);c.appendChild(div);
 };
 window.addInterventionBlock=function(data){
   const c=document.getElementById('interventionBlocks');const div=document.createElement('div');div.className='dyn-block';
   const name=document.createElement('input');name.type='text';name.placeholder='e.g. retainer for bruxism';name.setAttribute('list','intSugg');name.style.flex='1';name.style.minWidth='180px';if(data&&data.name)name.value=data.name;
   name.addEventListener('input',()=>scheduleSave());
   div.appendChild(name);
-  addBlockButtons(div,!!data);c.appendChild(div);
+  addBlockButtons(div);c.appendChild(div);
   updateDatalist('intSugg',APP.savedInterventions);
 };
 function collectExerciseBlocks(){const b=[];document.querySelectorAll('#exerciseBlocks .dyn-block').forEach(div=>{const t=div.querySelector('select')?.value;const d=parseInt(div.querySelectorAll('input')[0]?.value)||0;const tod=div.querySelectorAll('select')[1]?.value||'';if(t)b.push({type:t,duration:d,timeOfDay:tod})});return b}
