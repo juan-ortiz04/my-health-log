@@ -207,9 +207,12 @@ input[data-color="rose"]::-moz-range-thumb{border-color:var(--rose);background:v
 .tl-stacked{display:flex;height:7px;border-radius:4px;overflow:hidden;flex:1;min-width:50px}
 .tl-stacked-seg{transition:width .2s}
 .tl-note{font-size:11.5px;color:var(--t2);margin-top:2px}
-.tl-delete{position:absolute;top:6px;right:6px;background:none;border:none;color:var(--t3);cursor:pointer;font-size:13px;padding:2px;border-radius:4px;opacity:0;transition:opacity .15s}
-.timeline-item:hover .tl-delete{opacity:1}
+.tl-actions{position:absolute;top:6px;right:6px;display:flex;gap:4px;opacity:0;transition:opacity .15s}
+.timeline-item:hover .tl-actions{opacity:1}
+.tl-edit,.tl-delete{background:none;border:none;color:var(--t3);cursor:pointer;font-size:12px;padding:2px 4px;border-radius:4px;transition:all .1s;-webkit-tap-highlight-color:transparent}
+.tl-edit:hover{color:var(--blue);background:var(--blue-d)}
 .tl-delete:hover{color:var(--rose);background:var(--rose-d)}
+@media(max-width:800px){.tl-actions{opacity:1}}
 
 /* ═══ SLEEP QUALITY ═══ */
 .sq-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:5px}
@@ -845,9 +848,24 @@ window.saveMoment=function(){
 };
 
 window.deleteMoment=function(momentId){
+  if(!confirm('Delete this moment?'))return;
   const entry=getEntry(currentViewDate);if(!entry)return;
   entry.moments=entry.moments.filter(m=>m.id!==momentId);
   renderMomentTimeline();updateGlance();persistData();
+};
+
+window.editMoment=function(momentId){
+  const entry=getEntry(currentViewDate);if(!entry)return;
+  const m=entry.moments.find(x=>x.id===momentId);if(!m)return;
+  // Load moment values into the form
+  document.getElementById('momentTime').value=m.time;
+  FIELDS.forEach(f=>{const el=document.getElementById('m-'+f);if(el)el.value=m[f]||0});
+  document.getElementById('momentNote').value=m.note||'';
+  updateMomentPreview();
+  // Remove old moment — saving will create updated one
+  entry.moments=entry.moments.filter(x=>x.id!==momentId);
+  renderMomentTimeline();updateGlance();
+  showToast('Editing moment — adjust and Save','info');
 };
 
 function renderMomentTimeline(){
@@ -874,9 +892,14 @@ function renderMomentTimeline(){
     header.appendChild(timeSpan);header.appendChild(detailSpan);header.appendChild(stackedDiv);header.appendChild(scoreSpan);
     item.appendChild(header);
     if(m.note){const note=document.createElement('div');note.className='tl-note';note.textContent=m.note;item.appendChild(note)}
+    const actions=document.createElement('div');actions.className='tl-actions';
+    const edit=document.createElement('button');edit.className='tl-edit';edit.textContent='✏️';edit.title='Edit moment';
     const del=document.createElement('button');del.className='tl-delete';del.textContent='×';del.title='Delete moment';
-    const mid=m.id;del.addEventListener('click',e=>{e.stopPropagation();deleteMoment(mid)});
-    item.appendChild(del);tl.appendChild(item);
+    const mid=m.id;
+    edit.addEventListener('click',e=>{e.stopPropagation();editMoment(mid)});
+    del.addEventListener('click',e=>{e.stopPropagation();deleteMoment(mid)});
+    actions.appendChild(edit);actions.appendChild(del);
+    item.appendChild(actions);tl.appendChild(item);
   });
   container.appendChild(tl);
 }
@@ -933,7 +956,24 @@ function saveDailyFields(){
   persistData();
 }
 
-window.selectSleep=function(btn){document.querySelectorAll('.sq-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');currentSleepQuality=SQ_REVERSE[parseInt(btn.getAttribute('data-val'))]||null;scheduleSave()};
+window.selectSleep=function(btn){
+  const val=parseInt(btn.getAttribute('data-val'));
+  const label=SQ_REVERSE[val]||null;
+  // Tap same button again to deselect
+  if(btn.classList.contains('active')){
+    btn.classList.remove('active');
+    currentSleepQuality=null;
+    scheduleSave();return;
+  }
+  // If already had a different selection, confirm change
+  if(currentSleepQuality&&currentSleepQuality!==label){
+    if(!confirm('Change sleep quality from "'+currentSleepQuality+'" to "'+label+'"?'))return;
+  }
+  document.querySelectorAll('.sq-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  currentSleepQuality=label;
+  scheduleSave();
+};
 
 // ═══ 7. DYNAMIC BLOCKS ═══
 window.addExerciseBlock=function(data){
