@@ -434,11 +434,9 @@ input[data-color="rose"]::-moz-range-thumb{border-color:var(--rose);background:v
     <!-- TOP BAR -->
     <div class="top-bar" id="topBar">
       <button class="tb-back" onclick="navigateDay(-1)" title="Previous day">‹</button>
-      <button class="tb-back hidden" id="tbForward" onclick="navigateDay(1)" title="Next day">›</button>
       <div class="tb-date" id="tbDate" onclick="toggleCalendar()">
         <div class="tb-date-main" id="tbDateMain">Today</div>
         <div class="tb-date-sub" id="tbDateSub"></div>
-        <!-- Calendar dropdown -->
         <div class="cal-dropdown" id="calDropdown">
           <div class="cal-header">
             <button onclick="calNav(-1);event.stopPropagation()">‹</button>
@@ -448,6 +446,7 @@ input[data-color="rose"]::-moz-range-thumb{border-color:var(--rose);background:v
           <div class="cal-grid" id="calGrid"></div>
         </div>
       </div>
+      <button class="tb-back hidden" id="tbForward" onclick="navigateDay(1)" title="Next day">›</button>
       <button class="tb-today-jump hidden" id="todayBtn" onclick="navigateToToday()">Today</button>
       <div class="day-type-menu">
         <button class="day-type-pill" id="dayTypePill" data-type="Work Day" onclick="toggleDayTypeMenu()">Work Day</button>
@@ -684,6 +683,7 @@ function getAutoDayType(ds){
 function sanitizeText(s){return String(s).replace(/[<>"'&]/g,c=>({'<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','&':'&amp;'}[c]))}
 function formatDateShort(ds){const d=new Date(ds+'T12:00:00');const m=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];return d.getDate()+' '+m[d.getMonth()]}
 function formatDateFull(ds){const d=new Date(ds+'T12:00:00');const days=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];const m=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];return days[d.getDay()]+', '+d.getDate()+' '+m[d.getMonth()]+' '+d.getFullYear()}
+function formatDateShortNav(ds){const d=new Date(ds+'T12:00:00');const days=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];const m=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];return days[d.getDay()]+', '+d.getDate()+' '+m[d.getMonth()]}
 function getEntry(ds){return APP.entries.find(e=>e.date===ds)}
 function getOrCreateEntry(ds){
   let e=getEntry(ds);
@@ -764,8 +764,8 @@ function updateDateNav(){
   const isToday=currentViewDate===todayStr();
   const main=document.getElementById('tbDateMain');
   const sub=document.getElementById('tbDateSub');
-  if(main)main.textContent=isToday?'Today':formatDateFull(currentViewDate);
-  if(sub)sub.textContent=isToday?formatDateFull(currentViewDate):'Tap to open calendar';
+  if(main)main.textContent=isToday?'Today':formatDateShortNav(currentViewDate);
+  if(sub)sub.textContent=isToday?formatDateShortNav(currentViewDate):'';
   document.getElementById('todayBtn').classList.toggle('hidden',isToday);
   document.getElementById('tbForward').classList.toggle('hidden',isToday);
   const entry=getEntry(currentViewDate);
