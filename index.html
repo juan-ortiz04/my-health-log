@@ -1445,26 +1445,45 @@ window.closeModal=function(id){document.getElementById(id).classList.remove('sho
 window.toggleCard=function(id){const el=document.getElementById(CSS.escape(id));if(el)el.classList.toggle('collapsed')};
 
 window.expandChart=function(canvasId,title){
-  const origCanvas=document.getElementById(canvasId);if(!origCanvas)return;
-  const chartKey={chartTimeSeries:'trend',chartDOW:'dow',chartSleepCorr:'sleep'}[canvasId];
-  const origChart=chartInstances[chartKey];if(!origChart)return;
+  const entries=APP.entries.filter(e=>e.moments&&e.moments.length);
+  if(!entries.length)return;
   // Create fullscreen overlay
   const overlay=document.createElement('div');overlay.className='chart-fullscreen';
+  let fsChart=null;
+  function closeFS(){if(fsChart)fsChart.destroy();overlay.remove();document.removeEventListener('keydown',escH)}
+  const escH=e=>{if(e.key==='Escape')closeFS()};document.addEventListener('keydown',escH);
   const close=document.createElement('button');close.className='fs-close';close.textContent='✕ Close';
-  close.addEventListener('click',()=>{if(fsChart)fsChart.destroy();overlay.remove()});
+  close.addEventListener('click',closeFS);
   const titleEl=document.createElement('div');titleEl.style.cssText='font-size:14px;font-weight:600;margin-bottom:8px;color:var(--t1)';titleEl.textContent=title;
   const content=document.createElement('div');content.className='fs-content';
   const canvas=document.createElement('canvas');
   content.appendChild(canvas);
   overlay.appendChild(close);overlay.appendChild(titleEl);overlay.appendChild(content);
   document.body.appendChild(overlay);
-  // Clone chart config
-  const cfg=JSON.parse(JSON.stringify(origChart.config));
-  cfg.options.maintainAspectRatio=false;cfg.options.responsive=true;
-  const fsChart=new Chart(canvas,cfg);
-  // Close on Escape
-  const escHandler=e=>{if(e.key==='Escape'){fsChart.destroy();overlay.remove();document.removeEventListener('keydown',escHandler)}};
-  document.addEventListener('keydown',escHandler);
+  // Rebuild chart fresh in the fullscreen canvas
+  const sorted=[...entries].sort((a,b)=>a.date.localeCompare(b.date));
+  if(canvasId==='chartTimeSeries'){
+    const sliced=trendRange>=9999?sorted:sorted.slice(-trendRange);
+    const labels=sliced.map(e=>formatDateShort(e.date));
+    const scores=sliced.map(e=>getDaySummary(e));
+    const r7=rollingAvg(scores,Math.min(7,scores.length));
+    fsChart=new Chart(canvas,{type:'line',data:{labels,datasets:[
+      {label:'Daily Score',data:scores,borderColor:'rgba(0,178,169,.7)',backgroundColor:'rgba(0,178,169,.08)',fill:true,tension:.3,pointRadius:3,borderWidth:2},
+      {label:'Rolling Avg',data:r7,borderColor:'rgba(0,115,174,.8)',borderDash:[5,3],borderWidth:2,pointRadius:0,tension:.4}
+    ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{boxWidth:12,font:{size:12}}}},scales:{x:{ticks:{font:{size:10}},grid:{display:false}},y:{min:0,max:40,ticks:{stepSize:10}}}}});
+  }else if(canvasId==='chartDOW'){
+    const buckets=Array.from({length:7},()=>[]);
+    entries.forEach(e=>{const dow=new Date(e.date+'T12:00:00').getDay();buckets[dow].push(getDaySummary(e))});
+    const labels=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    const avgs=buckets.map(b=>b.length?mean(b):0);
+    const colors=avgs.map(v=>v<=13?'rgba(22,163,74,.7)':v<=26?'rgba(217,119,6,.7)':'rgba(220,38,38,.7)');
+    fsChart=new Chart(canvas,{type:'bar',data:{labels,datasets:[{data:avgs,backgroundColor:colors,borderRadius:6,barPercentage:.6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false}},y:{min:0,max:40,ticks:{stepSize:10}}}}});
+  }else if(canvasId==='chartSleepCorr'){
+    const pairs=entries.filter(e=>e.sleepQuality).map(e=>({x:SQ_MAP[e.sleepQuality]??5,y:getDaySummary(e)}));
+    if(!pairs.length){closeFS();return}
+    const colors=pairs.map(p=>p.y<=13?'rgba(22,163,74,.6)':p.y<=26?'rgba(217,119,6,.6)':'rgba(220,38,38,.6)');
+    fsChart=new Chart(canvas,{type:'scatter',data:{datasets:[{data:pairs,backgroundColor:colors,pointRadius:7}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{title:{display:true,text:'Sleep Quality'},min:-0.5,max:10.5,ticks:{callback:v=>SQ_REVERSE[v]||''}},y:{title:{display:true,text:'Symptom Score'},min:0,max:40}}}});
+  }
 };
 window.toggleMobileMenu=function(){document.getElementById('mobileMenu').classList.toggle('show')};
 window.closeMobileMenu=function(){document.getElementById('mobileMenu').classList.remove('show')};
