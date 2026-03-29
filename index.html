@@ -104,10 +104,10 @@ body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:var(--bg)
 .tb-date{flex:1;text-align:center;cursor:pointer;-webkit-tap-highlight-color:transparent;position:relative}
 .tb-date-main{font-size:15px;font-weight:600;color:var(--t1)}
 .tb-date-sub{font-size:10px;color:var(--t3);margin-top:1px}
-.tb-today-jump{background:var(--blue-g);border:1px solid var(--blue);color:var(--blue);padding:4px 10px;border-radius:7px;font-size:10.5px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;flex-shrink:0;-webkit-tap-highlight-color:transparent}
+.tb-today-jump{background:var(--blue-g);border:1px solid var(--blue);color:var(--blue);padding:3px 9px;border-radius:6px;font-size:10px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;flex-shrink:0;-webkit-tap-highlight-color:transparent;line-height:1.3}
 .tb-today-jump:hover{background:var(--blue);color:#fff}
 .tb-today-jump.hidden{display:none}
-.day-type-pill{padding:3px 8px;border-radius:5px;font-size:9.5px;font-weight:600;border:1px solid;cursor:pointer;font-family:inherit;transition:all .15s;flex-shrink:0}
+.day-type-pill{padding:3px 9px;border-radius:6px;font-size:10px;font-weight:600;border:1px solid;cursor:pointer;font-family:inherit;transition:all .15s;flex-shrink:0;line-height:1.3}
 .day-type-pill[data-type="Work Day"]{background:var(--blue-d);border-color:var(--blue);color:var(--blue)}
 .day-type-pill[data-type="Weekend"]{background:var(--teal-d);border-color:var(--teal);color:var(--teal)}
 .day-type-pill[data-type="Holiday"]{background:var(--amber-d);border-color:var(--amber);color:var(--amber)}
@@ -235,8 +235,15 @@ input[data-color="rose"]::-moz-range-thumb{border-color:var(--rose);background:v
 .dyn-block input[type="text"]{flex:1;min-width:90px}
 .dyn-block input[type="time"]{width:90px}
 .dyn-block .dose-input{width:80px;flex:none}
-.dyn-remove{width:26px;height:26px;border-radius:6px;border:1px solid var(--b1);background:transparent;color:var(--t3);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0}
+.dyn-remove{width:26px;height:26px;border-radius:6px;border:1px solid var(--b1);background:transparent;color:var(--t3);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0;-webkit-tap-highlight-color:transparent}
 .dyn-remove:hover{background:var(--rose-d);color:var(--rose);border-color:var(--rose)}
+/* Locked state for saved blocks */
+.dyn-block.locked select,.dyn-block.locked input{pointer-events:none;opacity:.7}
+.dyn-block.locked .dyn-remove{display:none}
+.dyn-unlock{width:26px;height:26px;border-radius:6px;border:1px solid var(--b1);background:transparent;color:var(--t3);cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0;-webkit-tap-highlight-color:transparent}
+.dyn-unlock:hover{background:var(--blue-d);color:var(--blue);border-color:var(--blue)}
+.dyn-block.locked .dyn-unlock{display:flex}
+.dyn-block:not(.locked) .dyn-unlock{display:none}
 .add-btn{display:inline-flex;align-items:center;gap:5px;padding:6px 12px;border-radius:7px;border:1.5px dashed var(--b2);background:transparent;color:var(--t3);cursor:pointer;font-family:inherit;font-size:11px;font-weight:500;transition:all .15s;margin-top:3px}
 .add-btn:hover{border-color:var(--blue);color:var(--blue);background:var(--blue-g)}
 
@@ -525,8 +532,8 @@ input[data-color="rose"]::-moz-range-thumb{border-color:var(--rose);background:v
         </div>
 
         <div class="card">
-          <div class="card-title"><span class="card-icon">📝</span> Daily Notes</div>
-          <textarea class="notes-area" id="notesField" placeholder="Triggers, mood, food, weather, events — anything relevant today..." oninput="scheduleSave()"></textarea>
+          <div class="card-title"><span class="card-icon">📝</span> Daily Notes <button type="button" class="dyn-unlock" id="notesEditBtn" onclick="toggleNotesEdit()" style="display:none;margin-left:auto" title="Edit notes">✏️</button></div>
+          <textarea class="notes-area" id="notesField" placeholder="Triggers, mood, food, weather, events — anything relevant today..." oninput="onNotesInput()"></textarea>
         </div>
       </div>
 
@@ -925,6 +932,7 @@ function loadDailyFieldsIntoForm(){
     if(entry.medications&&entry.medications.length)entry.medications.forEach(m=>addMedBlock(m));
     if(entry.interventions&&entry.interventions.length)entry.interventions.forEach(iv=>addInterventionBlock(iv));
     if(entry.notes)document.getElementById('notesField').value=entry.notes;
+    lockNotesIfNeeded();
   }else{
     // New day — carry forward meds, exercise, interventions from previous day
     const prev=getPreviousDayEntry();
@@ -934,6 +942,7 @@ function loadDailyFieldsIntoForm(){
       if(prev.interventions&&prev.interventions.length)prev.interventions.forEach(iv=>addInterventionBlock({name:iv.name}));
     }
   }
+  lockNotesIfNeeded();
 }
 
 function saveDailyFields(){
@@ -975,16 +984,40 @@ window.selectSleep=function(btn){
   scheduleSave();
 };
 
-// ═══ 7. DYNAMIC BLOCKS ═══
+// Notes lock: once saved, lock notes to prevent accidental edits
+let notesLocked=false;
+window.onNotesInput=function(){scheduleSave()};
+window.toggleNotesEdit=function(){
+  const field=document.getElementById('notesField');
+  const btn=document.getElementById('notesEditBtn');
+  notesLocked=false;field.readOnly=false;field.focus();
+  btn.style.display='none';
+};
+function lockNotesIfNeeded(){
+  const field=document.getElementById('notesField');
+  const btn=document.getElementById('notesEditBtn');
+  if(field.value.trim()){notesLocked=true;field.readOnly=true;btn.style.display='flex'}
+  else{notesLocked=false;field.readOnly=false;btn.style.display='none'}
+}
+
+// ═══ 7. DYNAMIC BLOCKS (with lock/unlock/confirm) ═══
+function addBlockButtons(div,isExisting){
+  const unlock=document.createElement('button');unlock.type='button';unlock.className='dyn-unlock';unlock.textContent='✏️';unlock.title='Edit';
+  unlock.addEventListener('click',()=>{div.classList.remove('locked');div.querySelector('select,input')?.focus()});
+  const rm=document.createElement('button');rm.type='button';rm.className='dyn-remove';rm.textContent='×';rm.title='Delete';
+  rm.addEventListener('click',()=>{if(!confirm('Delete this item?'))return;div.remove();scheduleSave()});
+  div.appendChild(unlock);div.appendChild(rm);
+  if(isExisting)div.classList.add('locked');
+}
+
 window.addExerciseBlock=function(data){
   const c=document.getElementById('exerciseBlocks');const div=document.createElement('div');div.className='dyn-block';
   const sel=document.createElement('select');sel.innerHTML='<option value="">Type...</option>'+EXERCISE_TYPES.map(t=>'<option value="'+sanitizeText(t)+'"'+(data&&data.type===t?' selected':'')+'>'+sanitizeText(t)+'</option>').join('');
   const dur=document.createElement('input');dur.type='number';dur.placeholder='min';dur.min='0';dur.max='600';if(data&&data.duration)dur.value=data.duration;
   const tod=document.createElement('select');tod.innerHTML='<option value="">When...</option>'+EXERCISE_TOD.map(t=>'<option'+(data&&data.timeOfDay===t?' selected':'')+'>'+t+'</option>').join('');
-  const rm=document.createElement('button');rm.type='button';rm.className='dyn-remove';rm.textContent='×';
   [sel,dur,tod].forEach(el=>el.addEventListener('change',()=>scheduleSave()));
-  rm.addEventListener('click',()=>{div.remove();scheduleSave()});
-  div.appendChild(sel);div.appendChild(dur);div.appendChild(tod);div.appendChild(rm);c.appendChild(div);
+  div.appendChild(sel);div.appendChild(dur);div.appendChild(tod);
+  addBlockButtons(div,!!data);c.appendChild(div);
 };
 const DEFAULT_MEDS=['Serc','Prednisolone','Zopiclone','Diphenhydramine','Rivotril'];
 const MED_TIMES=['Morning','Afternoon','Evening'];
@@ -1001,17 +1034,16 @@ window.addMedBlock=function(data){
   const dose=document.createElement('input');dose.type='text';dose.className='dose-input';dose.placeholder='Dose';if(data&&data.dose)dose.value=data.dose;
   const when=document.createElement('select');when.innerHTML='<option value="">When...</option>'+MED_TIMES.map(t=>'<option'+(data&&data.time===t?' selected':'')+'>'+t+'</option>').join('');
   when.addEventListener('change',()=>scheduleSave());
-  const rm=document.createElement('button');rm.type='button';rm.className='dyn-remove';rm.textContent='×';
   dose.addEventListener('input',()=>scheduleSave());
-  rm.addEventListener('click',()=>{div.remove();scheduleSave()});
-  div.appendChild(sel);div.appendChild(customInput);div.appendChild(dose);div.appendChild(when);div.appendChild(rm);c.appendChild(div);
+  div.appendChild(sel);div.appendChild(customInput);div.appendChild(dose);div.appendChild(when);
+  addBlockButtons(div,!!data);c.appendChild(div);
 };
 window.addInterventionBlock=function(data){
   const c=document.getElementById('interventionBlocks');const div=document.createElement('div');div.className='dyn-block';
   const name=document.createElement('input');name.type='text';name.placeholder='e.g. retainer for bruxism';name.setAttribute('list','intSugg');name.style.flex='1';name.style.minWidth='180px';if(data&&data.name)name.value=data.name;
-  const rm=document.createElement('button');rm.type='button';rm.className='dyn-remove';rm.textContent='×';
-  name.addEventListener('input',()=>scheduleSave());rm.addEventListener('click',()=>{div.remove();scheduleSave()});
-  div.appendChild(name);div.appendChild(rm);c.appendChild(div);
+  name.addEventListener('input',()=>scheduleSave());
+  div.appendChild(name);
+  addBlockButtons(div,!!data);c.appendChild(div);
   updateDatalist('intSugg',APP.savedInterventions);
 };
 function collectExerciseBlocks(){const b=[];document.querySelectorAll('#exerciseBlocks .dyn-block').forEach(div=>{const t=div.querySelector('select')?.value;const d=parseInt(div.querySelectorAll('input')[0]?.value)||0;const tod=div.querySelectorAll('select')[1]?.value||'';if(t)b.push({type:t,duration:d,timeOfDay:tod})});return b}
