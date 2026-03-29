@@ -207,11 +207,11 @@ input[data-color="rose"]::-moz-range-thumb{border-color:var(--rose);background:v
 .tl-stacked{display:flex;height:7px;border-radius:4px;overflow:hidden;flex:1;min-width:50px}
 .tl-stacked-seg{transition:width .2s}
 .tl-note{font-size:11.5px;color:var(--t2);margin-top:2px}
-.tl-actions{position:absolute;top:6px;right:6px;display:flex;gap:4px;opacity:0;transition:opacity .15s}
+.tl-actions{position:absolute;top:4px;right:4px;display:flex;gap:12px;opacity:0;transition:opacity .15s}
 .timeline-item:hover .tl-actions{opacity:1}
-.tl-edit,.tl-delete{background:none;border:none;color:var(--t3);cursor:pointer;font-size:12px;padding:2px 4px;border-radius:4px;transition:all .1s;-webkit-tap-highlight-color:transparent}
-.tl-edit:hover{color:var(--blue);background:var(--blue-d)}
-.tl-delete:hover{color:var(--rose);background:var(--rose-d)}
+.tl-edit,.tl-delete{background:none;border:1px solid var(--b1);color:var(--t3);cursor:pointer;font-size:13px;width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;transition:all .1s;-webkit-tap-highlight-color:transparent}
+.tl-edit:hover,.tl-edit:active{color:var(--blue);background:var(--blue-d);border-color:var(--blue)}
+.tl-delete:hover,.tl-delete:active{color:var(--rose);background:var(--rose-d);border-color:var(--rose)}
 @media(max-width:800px){.tl-actions{opacity:1}}
 
 /* ═══ SLEEP QUALITY ═══ */
@@ -235,13 +235,14 @@ input[data-color="rose"]::-moz-range-thumb{border-color:var(--rose);background:v
 .dyn-block input[type="text"]{flex:1;min-width:90px}
 .dyn-block input[type="time"]{width:90px}
 .dyn-block .dose-input{width:80px;flex:none}
-.dyn-remove{width:26px;height:26px;border-radius:6px;border:1px solid var(--b1);background:transparent;color:var(--t3);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0;-webkit-tap-highlight-color:transparent}
-.dyn-remove:hover{background:var(--rose-d);color:var(--rose);border-color:var(--rose)}
+.dyn-btn-group{display:flex;gap:12px;flex-shrink:0;margin-left:4px}
+.dyn-remove{width:32px;height:32px;border-radius:8px;border:1px solid var(--b1);background:transparent;color:var(--t3);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0;-webkit-tap-highlight-color:transparent}
+.dyn-remove:hover,.dyn-remove:active{background:var(--rose-d);color:var(--rose);border-color:var(--rose)}
 /* Locked state for saved blocks */
 .dyn-block.locked select,.dyn-block.locked input{pointer-events:none;opacity:.7}
 .dyn-block.locked .dyn-remove{display:none}
-.dyn-unlock{width:26px;height:26px;border-radius:6px;border:1px solid var(--b1);background:transparent;color:var(--t3);cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0;-webkit-tap-highlight-color:transparent}
-.dyn-unlock:hover{background:var(--blue-d);color:var(--blue);border-color:var(--blue)}
+.dyn-unlock{width:32px;height:32px;border-radius:8px;border:1px solid var(--b1);background:transparent;color:var(--t3);cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0;-webkit-tap-highlight-color:transparent}
+.dyn-unlock:hover,.dyn-unlock:active{background:var(--blue-d);color:var(--blue);border-color:var(--blue)}
 .dyn-block.locked .dyn-unlock{display:flex}
 .dyn-block:not(.locked) .dyn-unlock{display:none}
 .add-btn{display:inline-flex;align-items:center;gap:5px;padding:6px 12px;border-radius:7px;border:1.5px dashed var(--b2);background:transparent;color:var(--t3);cursor:pointer;font-family:inherit;font-size:11px;font-weight:500;transition:all .15s;margin-top:3px}
@@ -1148,11 +1149,12 @@ function lockNotesIfNeeded(){
 
 // ═══ 7. DYNAMIC BLOCKS (with lock/unlock/confirm) ═══
 function addBlockButtons(div,isExisting){
+  const group=document.createElement('div');group.className='dyn-btn-group';
   const unlock=document.createElement('button');unlock.type='button';unlock.className='dyn-unlock';unlock.textContent='✏️';unlock.title='Edit';
   unlock.addEventListener('click',()=>{div.classList.remove('locked');div.querySelector('select,input')?.focus()});
   const rm=document.createElement('button');rm.type='button';rm.className='dyn-remove';rm.textContent='×';rm.title='Delete';
   rm.addEventListener('click',()=>{if(!confirm('Delete this item?'))return;div.remove();scheduleSave()});
-  div.appendChild(unlock);div.appendChild(rm);
+  group.appendChild(unlock);group.appendChild(rm);div.appendChild(group);
   if(isExisting)div.classList.add('locked');
 }
 
