@@ -740,10 +740,8 @@ window.manualSave=async function(){saveDailyFields();showToast('Saved! ('+APP.en
 function updateSaveDot(s){
   const d=document.getElementById('saveDot');if(d)d.className='save-dot '+s;
   const t=document.getElementById('saveStatusText');if(t)t.textContent={idle:'Ready',saved:'Saved',saving:'Saving...',error:'Error'}[s]||s;
-  const tbBtn=document.getElementById('tbSaveBtn');
   const tbDot=document.getElementById('tbSaveDot');
-  if(tbBtn){tbBtn.className='tb-save'+(s==='saving'?' saving':s==='saved'?' saved':'');tbBtn.childNodes[0].textContent=s==='saving'?'⏳':s==='saved'?'✓':'💾';if(s==='saved')setTimeout(()=>{tbBtn.className='tb-save';tbBtn.childNodes[0].textContent='💾'},1500)}
-  if(tbDot)tbDot.className='tb-save-dot '+s;
+  if(tbDot){tbDot.className='tb-save-dot '+s;if(s==='saved')setTimeout(()=>tbDot.className='tb-save-dot idle',2000)}
 }
 
 // ═══ 4. DATE NAV ═══
