@@ -618,19 +618,29 @@ input[data-color="rose"]::-moz-range-thumb{border-color:var(--rose);background:v
       </div>
       <div style="position:relative;height:260px"><canvas id="chartTimeSeries"></canvas></div>
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
-      <div class="chart-card">
-        <div class="card-title"><span class="card-icon">📅</span> Day of Week</div>
-        <div style="position:relative;height:220px"><canvas id="chartDOW"></canvas></div>
+    <div class="chart-card">
+      <div class="card-title"><span class="card-icon">📅</span> Day of Week</div>
+      <div class="chart-controls" id="dowControls">
+        <button class="chart-pill active" data-mode="avg" onclick="setDOWMode('avg',this)">Average</button>
+        <button class="chart-pill" data-mode="all" onclick="setDOWMode('all',this)">All Weeks</button>
       </div>
-      <div class="chart-card">
-        <div class="card-title"><span class="card-icon">😴</span> Sleep vs Symptoms</div>
-        <div style="position:relative;height:220px"><canvas id="chartSleepCorr"></canvas></div>
-      </div>
+      <div style="position:relative;height:240px"><canvas id="chartDOW"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="card-title"><span class="card-icon">😴</span> Sleep vs Symptoms</div>
+      <div style="position:relative;height:240px"><canvas id="chartSleepCorr"></canvas></div>
     </div>
     <div class="chart-card">
       <div class="card-title"><span class="card-icon">🗓️</span> Calendar Heatmap</div>
       <div id="heatmapContainer"></div>
+      <div id="heatmapLegend" style="display:flex;align-items:center;gap:6px;margin-top:8px;font-size:10px;color:var(--t3)">
+        <span>Low</span>
+        <div style="display:flex;height:10px;border-radius:3px;overflow:hidden;width:120px">
+          <div style="flex:1;background:#dcfce7"></div><div style="flex:1;background:#fef3c7"></div><div style="flex:1;background:#fee2e2"></div><div style="flex:1;background:#fca5a5"></div>
+        </div>
+        <span>High</span>
+        <span style="margin-left:8px">● = entry</span>
+      </div>
     </div>
   </section>
 
@@ -1442,14 +1452,15 @@ function renderDashboard(){
   if(typeof Chart==='undefined'){setTimeout(renderDashboard,200);return}
   const entries=APP.entries.filter(e=>e.moments&&e.moments.length);
   renderKPIs(entries);
-  renderTrendChart(entries,14);
-  renderDOWChart(entries);
+  renderTrendChart(entries,trendRange);
+  renderDOWChart(entries,dowMode);
   renderSleepChart(entries);
-  renderHeatmap(entries);
+  renderHeatmap();
 }
 
-let trendRange=14;
+let trendRange=14,dowMode='avg';
 window.setTrendRange=function(r,btn){trendRange=r;document.querySelectorAll('#trendControls .chart-pill').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderTrendChart(APP.entries.filter(e=>e.moments&&e.moments.length),r)};
+window.setDOWMode=function(m,btn){dowMode=m;document.querySelectorAll('#dowControls .chart-pill').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderDOWChart(APP.entries.filter(e=>e.moments&&e.moments.length),m)};
 
 function renderKPIs(entries){
   const grid=document.getElementById('kpiGrid');grid.textContent='';
@@ -1460,16 +1471,18 @@ function renderKPIs(entries){
   const delta=last30.length>=14?avg7-mean(sorted.slice(-14,-7).map(e=>getDaySummary(e))):0;
   let streak=0;for(let i=sorted.length-1;i>=0;i--){const expected=new Date();expected.setDate(expected.getDate()-(sorted.length-1-i));if(sorted[i].date===dateToLocal(expected))streak++;else break}
   const bestScore=sorted.length?Math.min(...sorted.map(e=>getDaySummary(e))):0;
+  const worstScore=sorted.length?Math.max(...sorted.map(e=>getDaySummary(e))):0;
   const kpis=[
-    {label:'7-Day Avg',value:avg7.toFixed(1),delta:delta,unit:'/40'},
-    {label:'30-Day Avg',value:last30.length?avg30.toFixed(1):'—',unit:'/40'},
-    {label:'Streak',value:streak,unit:' days'},
-    {label:'Total Entries',value:entries.length,unit:''},
-    {label:'Best Day',value:sorted.length?bestScore:'—',unit:'/40'}
+    {label:'7-Day Avg',value:avg7.toFixed(1),delta:delta},
+    {label:'30-Day Avg',value:last30.length?avg30.toFixed(1):'—'},
+    {label:'Best Day',value:sorted.length?bestScore:'—',color:'var(--green)'},
+    {label:'Worst Day',value:sorted.length?worstScore:'—',color:'var(--rose)'},
+    {label:'Streak',value:streak+' days'},
+    {label:'Entries',value:entries.length}
   ];
   kpis.forEach(k=>{
     const card=document.createElement('div');card.className='kpi-card';
-    const val=document.createElement('div');val.className='kpi-value';val.textContent=k.value;
+    const val=document.createElement('div');val.className='kpi-value';val.textContent=k.value;if(k.color)val.style.color=k.color;
     const lab=document.createElement('div');lab.className='kpi-label';lab.textContent=k.label;
     card.appendChild(val);card.appendChild(lab);
     if(k.delta!==undefined&&k.delta!==0){const d=document.createElement('div');d.className='kpi-delta '+(k.delta>0?'up':'down');d.textContent=(k.delta>0?'▲ +':'▼ ')+Math.abs(k.delta).toFixed(1)+' vs prev week';card.appendChild(d)}
@@ -1483,45 +1496,82 @@ function renderTrendChart(entries,range){
   if(!sliced.length)return;
   const labels=sliced.map(e=>formatDateShort(e.date));
   const scores=sliced.map(e=>getDaySummary(e));
-  const rolling7=rollingAvg(scores,7);
+  const rolling7=rollingAvg(scores,Math.min(7,scores.length));
   if(chartInstances.trend)chartInstances.trend.destroy();
-  chartInstances.trend=new Chart(document.getElementById('chartTimeSeries'),{type:'line',data:{labels,datasets:[{label:'Daily Score',data:scores,borderColor:'rgba(0,178,169,.7)',backgroundColor:'rgba(0,178,169,.08)',fill:true,tension:.3,pointRadius:2,pointHoverRadius:5,borderWidth:1.5},{label:'7-Day Avg',data:rolling7,borderColor:'rgba(0,115,174,.8)',borderDash:[5,3],borderWidth:2,pointRadius:0,fill:false,tension:.4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{boxWidth:12,font:{size:11}}}},scales:{x:{ticks:{font:{size:10},maxTicksLimit:12},grid:{display:false}},y:{min:0,max:40,ticks:{stepSize:10},grid:{color:'rgba(0,0,0,.05)'}}}}});
+  chartInstances.trend=new Chart(document.getElementById('chartTimeSeries'),{type:'line',data:{labels,datasets:[
+    {label:'Daily Score',data:scores,borderColor:'rgba(0,178,169,.7)',backgroundColor:'rgba(0,178,169,.08)',fill:true,tension:.3,pointRadius:3,pointHoverRadius:6,borderWidth:1.5},
+    {label:'Rolling Avg',data:rolling7,borderColor:'rgba(0,115,174,.8)',borderDash:[5,3],borderWidth:2,pointRadius:0,fill:false,tension:.4}
+  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{boxWidth:12,font:{size:11}}}},scales:{x:{ticks:{font:{size:10},maxTicksLimit:12},grid:{display:false}},y:{min:0,max:40,ticks:{stepSize:10},grid:{color:'rgba(0,0,0,.05)'}}}}});
 }
 
-function renderDOWChart(entries){
+function renderDOWChart(entries,mode){
   const buckets=Array.from({length:7},()=>[]);
   entries.forEach(e=>{const dow=new Date(e.date+'T12:00:00').getDay();buckets[dow].push(getDaySummary(e))});
   const labels=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-  const avgs=buckets.map(b=>b.length?mean(b):0);
-  const colors=avgs.map(v=>v<=13?'rgba(22,163,74,.7)':v<=26?'rgba(217,119,6,.7)':'rgba(220,38,38,.7)');
   if(chartInstances.dow)chartInstances.dow.destroy();
-  chartInstances.dow=new Chart(document.getElementById('chartDOW'),{type:'bar',data:{labels,datasets:[{label:'Avg Score',data:avgs,backgroundColor:colors,borderRadius:6,barPercentage:.6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false}},y:{min:0,max:40,ticks:{stepSize:10},grid:{color:'rgba(0,0,0,.05)'}}}}});
+  if(mode==='all'&&entries.length>1){
+    // Group by week number, show each week as a separate line
+    const weekMap=new Map();
+    entries.forEach(e=>{const d=new Date(e.date+'T12:00:00');const dow=d.getDay();const weekStart=new Date(d);weekStart.setDate(d.getDate()-dow);const wk=dateToLocal(weekStart);if(!weekMap.has(wk))weekMap.set(wk,Array(7).fill(null));weekMap.get(wk)[dow]=getDaySummary(e)});
+    const weeks=[...weekMap.entries()].sort((a,b)=>a[0].localeCompare(b[0]));
+    const colors=['rgba(0,178,169,.6)','rgba(0,115,174,.6)','rgba(124,91,244,.6)','rgba(220,38,38,.5)','rgba(217,119,6,.5)','rgba(22,163,74,.5)','rgba(100,100,100,.4)'];
+    const datasets=weeks.map((w,i)=>({label:formatDateShort(w[0]),data:w[1],borderColor:colors[i%colors.length],borderWidth:1.5,pointRadius:3,tension:.3,spanGaps:true}));
+    chartInstances.dow=new Chart(document.getElementById('chartDOW'),{type:'line',data:{labels,datasets},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{boxWidth:10,font:{size:9}}}},scales:{x:{grid:{display:false}},y:{min:0,max:40,ticks:{stepSize:10},grid:{color:'rgba(0,0,0,.05)'}}}}});
+  }else{
+    const avgs=buckets.map(b=>b.length?mean(b):0);
+    const counts=buckets.map(b=>b.length);
+    const colors=avgs.map(v=>v<=13?'rgba(22,163,74,.7)':v<=26?'rgba(217,119,6,.7)':'rgba(220,38,38,.7)');
+    chartInstances.dow=new Chart(document.getElementById('chartDOW'),{type:'bar',data:{labels,datasets:[{label:'Avg Score',data:avgs,backgroundColor:colors,borderRadius:6,barPercentage:.6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{afterLabel:function(ctx){return'n = '+counts[ctx.dataIndex]+' days'}}}},scales:{x:{grid:{display:false}},y:{min:0,max:40,ticks:{stepSize:10},grid:{color:'rgba(0,0,0,.05)'}}}}});
+  }
 }
 
 function renderSleepChart(entries){
+  const canvas=document.getElementById('chartSleepCorr');
   const pairs=entries.filter(e=>e.sleepQuality).map(e=>({x:SQ_MAP[e.sleepQuality]??5,y:getDaySummary(e)}));
-  if(!pairs.length)return;
   if(chartInstances.sleep)chartInstances.sleep.destroy();
+  if(!pairs.length){return}
   const colors=pairs.map(p=>p.y<=13?'rgba(22,163,74,.6)':p.y<=26?'rgba(217,119,6,.6)':'rgba(220,38,38,.6)');
-  chartInstances.sleep=new Chart(document.getElementById('chartSleepCorr'),{type:'scatter',data:{datasets:[{data:pairs,backgroundColor:colors,pointRadius:5,pointHoverRadius:7}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{title:{display:true,text:'Sleep Quality',font:{size:10}},min:0,max:10,ticks:{callback:v=>SQ_REVERSE[v]||'',font:{size:9}},grid:{display:false}},y:{title:{display:true,text:'Symptom Score',font:{size:10}},min:0,max:40,grid:{color:'rgba(0,0,0,.05)'}}}}});
+  const r=pairs.length>=3?pearsonR(pairs.map(p=>p.x),pairs.map(p=>p.y)):null;
+  chartInstances.sleep=new Chart(canvas,{type:'scatter',data:{datasets:[{label:'Sleep vs Score',data:pairs,backgroundColor:colors,pointRadius:6,pointHoverRadius:8}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},subtitle:{display:r!==null,text:'Correlation: r = '+(r||0).toFixed(2),font:{size:11},color:'var(--t3)'}},scales:{x:{title:{display:true,text:'Sleep Quality',font:{size:10}},min:-0.5,max:10.5,ticks:{callback:v=>SQ_REVERSE[v]||'',font:{size:9}},grid:{display:false}},y:{title:{display:true,text:'Symptom Score',font:{size:10}},min:0,max:40,grid:{color:'rgba(0,0,0,.05)'}}}}});
 }
 
-function renderHeatmap(entries){
-  if(typeof d3==='undefined'){setTimeout(()=>renderHeatmap(entries),200);return}
+function renderHeatmap(){
+  if(typeof d3==='undefined'){setTimeout(renderHeatmap,200);return}
   const container=document.getElementById('heatmapContainer');container.textContent='';
-  if(!entries.length)return;
-  const scoreMap=new Map();entries.forEach(e=>{const s=getDaySummary(e);if(s!=null)scoreMap.set(e.date,s)});
-  const cellSize=16,cellPad=2,weeksToShow=26;
+  // Use ALL entries, not filtered
+  const scoreMap=new Map();
+  APP.entries.forEach(e=>{const s=getDaySummary(e);if(s!=null)scoreMap.set(e.date,s)});
+  const cellSize=14,cellPad=2,weeksToShow=13;
   const today=new Date();const startDate=new Date(today);startDate.setDate(startDate.getDate()-weeksToShow*7);
-  const w=(weeksToShow+1)*(cellSize+cellPad)+40,h=7*(cellSize+cellPad)+20;
-  const svg=d3.select(container).append('svg').attr('width',w).attr('height',h);
+  const containerW=container.clientWidth||300;
+  const autoWeeks=Math.min(weeksToShow,Math.floor((containerW-30)/(cellSize+cellPad)));
+  const actualWeeks=Math.max(autoWeeks,4);
+  startDate.setDate(today.getDate()-actualWeeks*7);
+  const w=actualWeeks*(cellSize+cellPad)+32,h=7*(cellSize+cellPad)+20;
+  const svg=d3.select(container).append('svg').attr('width','100%').attr('viewBox','0 0 '+w+' '+h);
   const days=['S','M','T','W','T','F','S'];
-  svg.selectAll('.dayLabel').data(days).enter().append('text').attr('x',12).attr('y',(d,i)=>i*(cellSize+cellPad)+cellSize+10).text(d=>d).style('font-size','9px').style('text-anchor','middle');
-  const colorScale=d3.scaleLinear().domain([0,13,26,40]).range(['#dcfce7','#fef3c7','#fee2e2','#fca5a5']);
+  svg.selectAll('.dayLabel').data(days).enter().append('text').attr('x',10).attr('y',(d,i)=>i*(cellSize+cellPad)+cellSize+6).text(d=>d).style('font-size','8px').style('text-anchor','middle');
   const isDark=document.documentElement.getAttribute('data-theme')==='dark';
-  if(isDark)colorScale.range(['#0e3520','#3c2e0a','#3c1414','#7f1d1d']);
-  const cells=[];for(let i=0;i<=weeksToShow*7;i++){const d=new Date(startDate);d.setDate(d.getDate()+i);if(d>today)break;const ds=dateToLocal(d);const week=Math.floor(i/7);const dow=d.getDay();cells.push({date:ds,week,dow,score:scoreMap.get(ds)??null})}
-  svg.selectAll('.cell').data(cells).enter().append('rect').attr('class','cell').attr('x',d=>d.week*(cellSize+cellPad)+28).attr('y',d=>d.dow*(cellSize+cellPad)+4).attr('width',cellSize).attr('height',cellSize).attr('fill',d=>d.score!=null?colorScale(d.score):(isDark?'#1c2231':'#f0f2f7')).attr('stroke',isDark?'#252d40':'#e4e7ef').attr('stroke-width',.5).style('cursor','pointer').append('title').text(d=>d.date+(d.score!=null?' — Score: '+d.score:''));
+  const colorScale=d3.scaleLinear().domain([0,13,26,40]).range(isDark?['#0e3520','#3c2e0a','#3c1414','#7f1d1d']:['#dcfce7','#fef3c7','#fee2e2','#fca5a5']);
+  const emptyColor=isDark?'#1c2231':'#f0f2f7';
+  const borderColor=isDark?'#252d40':'#e4e7ef';
+  const cells=[];
+  for(let i=0;i<=actualWeeks*7;i++){
+    const d=new Date(startDate);d.setDate(d.getDate()+i);
+    if(d>today)break;
+    const ds=dateToLocal(d);const week=Math.floor(i/7);const dow=d.getDay();
+    cells.push({date:ds,week,dow,score:scoreMap.get(ds)??null});
+  }
+  svg.selectAll('.cell').data(cells).enter().append('rect')
+    .attr('x',d=>d.week*(cellSize+cellPad)+24)
+    .attr('y',d=>d.dow*(cellSize+cellPad)+2)
+    .attr('width',cellSize).attr('height',cellSize)
+    .attr('rx',3).attr('ry',3)
+    .attr('fill',d=>d.score!=null?colorScale(d.score):emptyColor)
+    .attr('stroke',d=>d.score!=null?'none':borderColor)
+    .attr('stroke-width',.5)
+    .style('cursor','pointer')
+    .append('title').text(d=>d.date+(d.score!=null?' — Score: '+d.score:' — No entry'));
 }
 
 // ═══ 19. INSIGHTS ENGINE ═══
