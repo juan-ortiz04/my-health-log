@@ -150,10 +150,15 @@ body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:var(--bg)
 /* ═══ LOG GRID ═══ */
 .log-grid{display:grid;grid-template-columns:1fr 320px;gap:20px;align-items:start}
 
-/* ═══ CARDS ═══ */
-.card{background:var(--l1);border:1px solid var(--b1);border-radius:14px;padding:18px;box-shadow:var(--shadow);transition:background .3s,border-color .3s;margin-bottom:14px}
-.card-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--t3);margin-bottom:12px;display:flex;align-items:center;gap:6px}
+/* ═══ CARDS (collapsible) ═══ */
+.card{background:var(--l1);border:1px solid var(--b1);border-radius:14px;box-shadow:var(--shadow);transition:background .3s,border-color .3s;margin-bottom:12px;overflow:hidden}
+.card-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--t3);padding:14px 16px;margin:0;display:flex;align-items:center;gap:6px;cursor:pointer;-webkit-tap-highlight-color:transparent;user-select:none;transition:background .1s}
+.card-title:hover{background:var(--l2)}
 .card-title .card-icon{font-size:14px}
+.card-title .card-chevron{margin-left:auto;font-size:10px;color:var(--t3);transition:transform .2s}
+.card.collapsed .card-chevron{transform:rotate(-90deg)}
+.card-body{padding:4px 16px 16px}
+.card.collapsed .card-body{display:none}
 
 /* ═══ MOMENT FORM ═══ */
 .moment-form{background:var(--l1);border:1.5px solid var(--teal);border-radius:14px;padding:18px;box-shadow:var(--shadow);margin-bottom:14px;transition:background .3s,border-color .3s}
@@ -194,25 +199,26 @@ input[data-color="violet"]::-moz-range-thumb{border-color:var(--violet);backgrou
 input[data-color="rose"]::-moz-range-thumb{border-color:var(--rose);background:var(--rose-d)}
 
 /* ═══ MOMENTS TIMELINE ═══ */
-.timeline{position:relative;padding-left:20px}
-.timeline::before{content:'';position:absolute;left:6px;top:8px;bottom:8px;width:2px;background:var(--b1);border-radius:1px}
-.timeline-item{position:relative;margin-bottom:10px;padding:10px 12px;background:var(--l2);border:1px solid var(--b1);border-radius:10px;transition:background .15s}
+.timeline{position:relative;padding-left:18px}
+.timeline::before{content:'';position:absolute;left:5px;top:8px;bottom:8px;width:2px;background:var(--b1);border-radius:1px}
+.timeline-item{position:relative;display:flex;gap:8px;align-items:flex-start;margin-bottom:8px;padding:8px 10px;background:var(--l2);border:1px solid var(--b1);border-radius:10px;transition:background .15s}
 .timeline-item:hover{background:var(--l3)}
-.timeline-item::before{content:'';position:absolute;left:-17px;top:14px;width:8px;height:8px;border-radius:50%;background:var(--teal);border:2px solid var(--l1);z-index:1}
-.tl-header{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.timeline-item::before{content:'';position:absolute;left:-16px;top:14px;width:7px;height:7px;border-radius:50%;background:var(--teal);border:2px solid var(--l1);z-index:1}
+.tl-content{flex:1;min-width:0}
+.tl-row1{display:flex;align-items:center;gap:6px;margin-bottom:3px}
 .tl-time{font-size:11px;font-weight:600;color:var(--teal)}
-.tl-score{font-size:11px;font-weight:700;padding:1px 6px;border-radius:4px}
-.tl-detail{font-size:10.5px;font-weight:500;color:var(--t2);flex-shrink:0;white-space:nowrap}
-.tl-detail b{font-weight:700;font-size:10px;margin-right:1px}
-.tl-stacked{display:flex;height:7px;border-radius:4px;overflow:hidden;flex:1;min-width:50px}
-.tl-stacked-seg{transition:width .2s}
-.tl-note{font-size:11.5px;color:var(--t2);margin-top:2px}
-.tl-actions{position:absolute;top:4px;right:4px;display:flex;gap:12px;opacity:0;transition:opacity .15s}
-.timeline-item:hover .tl-actions{opacity:1}
-.tl-edit,.tl-delete{background:none;border:1px solid var(--b1);color:var(--t3);cursor:pointer;font-size:13px;width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;transition:all .1s;-webkit-tap-highlight-color:transparent}
+.tl-score{font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px}
+.tl-detail{font-size:10px;color:var(--t2);display:flex;gap:6px}
+.tl-detail-item{display:flex;align-items:center;gap:2px}
+.tl-detail-item b{font-weight:700;font-size:9.5px}
+.tl-detail-item span{font-size:10px;font-weight:600}
+.tl-row2{display:flex;align-items:center;gap:0;height:7px;border-radius:4px;overflow:hidden;margin-top:2px}
+.tl-row2-seg{height:100%}
+.tl-note{font-size:11px;color:var(--t2);margin-top:3px;font-style:italic}
+.tl-actions{display:flex;flex-direction:column;gap:6px;flex-shrink:0}
+.tl-edit,.tl-delete{background:none;border:1px solid var(--b1);color:var(--t3);cursor:pointer;font-size:12px;width:28px;height:28px;border-radius:7px;display:flex;align-items:center;justify-content:center;transition:all .1s;-webkit-tap-highlight-color:transparent}
 .tl-edit:hover,.tl-edit:active{color:var(--blue);background:var(--blue-d);border-color:var(--blue)}
 .tl-delete:hover,.tl-delete:active{color:var(--rose);background:var(--rose-d);border-color:var(--rose)}
-@media(max-width:800px){.tl-actions{opacity:1}}
 
 /* ═══ SLEEP QUALITY ═══ */
 .sq-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:5px}
@@ -529,72 +535,74 @@ input[data-color="rose"]::-moz-range-thumb{border-color:var(--rose);background:v
         <div id="coachCard"></div>
 
         <!-- TODAY'S MOMENTS TIMELINE -->
-        <div class="card">
-          <div class="card-title"><span class="card-icon">🕐</span> Today's Moments</div>
-          <div id="momentsTimeline"><div class="empty-state"><p>No moments logged yet today</p></div></div>
+        <div class="card" id="cardMoments">
+          <div class="card-title" onclick="toggleCard('cardMoments')"><span class="card-icon">🕐</span> Today's Moments <span class="card-chevron">▼</span></div>
+          <div class="card-body"><div id="momentsTimeline"><div class="empty-state"><p>No moments logged yet today</p></div></div></div>
         </div>
 
-        <!-- DAILY FIELDS -->
-        <div class="card">
-          <div class="card-title"><span class="card-icon">😴</span> Sleep Quality</div>
-          <div class="sq-grid" id="sleepQualityGrid">
+        <div class="card" id="cardSleep">
+          <div class="card-title" onclick="toggleCard('cardSleep')"><span class="card-icon">😴</span> Sleep Quality <span class="card-chevron">▼</span></div>
+          <div class="card-body"><div class="sq-grid" id="sleepQualityGrid">
             <button type="button" class="sq-btn" data-val="0" onclick="selectSleep(this)">Very Poor</button>
             <button type="button" class="sq-btn" data-val="2" onclick="selectSleep(this)">Poor</button>
             <button type="button" class="sq-btn" data-val="4" onclick="selectSleep(this)">Average</button>
             <button type="button" class="sq-btn" data-val="6" onclick="selectSleep(this)">Good</button>
             <button type="button" class="sq-btn" data-val="8" onclick="selectSleep(this)">Sound</button>
             <button type="button" class="sq-btn" data-val="10" onclick="selectSleep(this)">Prime</button>
+          </div></div>
+        </div>
+
+        <div class="card" id="cardExercise">
+          <div class="card-title" onclick="toggleCard('cardExercise')"><span class="card-icon">🏋️</span> Exercise <span class="card-chevron">▼</span></div>
+          <div class="card-body"><div id="exerciseBlocks"></div><button type="button" class="add-btn" onclick="addExerciseBlock()">+ Add exercise</button></div>
+        </div>
+
+        <div class="card" id="cardMeds">
+          <div class="card-title" onclick="toggleCard('cardMeds')"><span class="card-icon">💊</span> Medications & Interventions <span class="card-chevron">▼</span></div>
+          <div class="card-body">
+            <div id="medBlocks"></div>
+            <button type="button" class="add-btn" onclick="addMedBlock()">+ Add medication</button>
+            <div style="margin-top:12px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--t3);margin-bottom:8px">🛡️ Interventions</div>
+            <div id="interventionBlocks"></div>
+            <button type="button" class="add-btn" onclick="addInterventionBlock()">+ Add intervention</button>
           </div>
         </div>
 
-        <div class="card">
-          <div class="card-title"><span class="card-icon">🏋️</span> Exercise</div>
-          <div id="exerciseBlocks"></div>
-          <button type="button" class="add-btn" onclick="addExerciseBlock()">+ Add exercise</button>
-        </div>
-
-        <div class="card">
-          <div class="card-title"><span class="card-icon">💊</span> Medications</div>
-          <div id="medBlocks"></div>
-          <button type="button" class="add-btn" onclick="addMedBlock()">+ Add medication</button>
-          <div class="card-title" style="margin-top:14px"><span class="card-icon">🛡️</span> Interventions</div>
-          <div id="interventionBlocks"></div>
-          <button type="button" class="add-btn" onclick="addInterventionBlock()">+ Add intervention</button>
-        </div>
-
-        <div class="card">
-          <div class="card-title"><span class="card-icon">📝</span> Daily Notes <button type="button" class="dyn-unlock" id="notesEditBtn" onclick="toggleNotesEdit()" style="display:none;margin-left:auto" title="Edit notes">✏️</button></div>
-          <textarea class="notes-area" id="notesField" placeholder="Triggers, mood, food, weather, events — anything relevant today..." oninput="onNotesInput()"></textarea>
+        <div class="card" id="cardNotes">
+          <div class="card-title" onclick="toggleCard('cardNotes')"><span class="card-icon">📝</span> Daily Notes <button type="button" class="dyn-unlock" id="notesEditBtn" onclick="event.stopPropagation();toggleNotesEdit()" style="display:none;margin-left:auto" title="Edit notes">✏️</button><span class="card-chevron">▼</span></div>
+          <div class="card-body"><textarea class="notes-area" id="notesField" placeholder="Triggers, mood, food, weather, events — anything relevant today..." oninput="onNotesInput()"></textarea></div>
         </div>
       </div>
 
       <!-- RIGHT: GLANCE PANEL -->
       <div class="glance-panel">
-        <div class="card">
-          <div class="card-title"><span class="card-icon">📊</span> Day Summary</div>
-          <div class="gauge-wrap">
+        <div class="card" id="cardGauge">
+          <div class="card-title" onclick="toggleCard('cardGauge')"><span class="card-icon">📊</span> Day Summary <span class="card-chevron">▼</span></div>
+          <div class="card-body"><div class="gauge-wrap">
             <svg id="gaugeArc" viewBox="0 0 200 120" width="180" height="108"></svg>
             <div class="gauge-score" id="gaugeScoreText">—</div>
             <div class="gauge-tier" id="gaugeTierText">Not recorded</div>
             <div class="gauge-mode" id="gaugeModeText"></div>
-          </div>
+          </div></div>
         </div>
-        <div class="card">
-          <div class="card-title"><span class="card-icon">📈</span> Intraday</div>
-          <div style="position:relative;height:100px"><canvas id="intradayMiniChart"></canvas></div>
-          <div class="empty-state" id="intradayEmpty" style="padding:12px"><p style="font-size:11px">Log 2+ moments to see your day's curve</p></div>
+        <div class="card" id="cardIntraday">
+          <div class="card-title" onclick="toggleCard('cardIntraday')"><span class="card-icon">📈</span> Intraday <span class="card-chevron">▼</span></div>
+          <div class="card-body"><div style="position:relative;height:100px"><canvas id="intradayMiniChart"></canvas></div>
+          <div class="empty-state" id="intradayEmpty" style="padding:12px"><p style="font-size:11px">Log 2+ moments to see your day's curve</p></div></div>
         </div>
-        <div class="card">
-          <div class="card-title"><span class="card-icon">📈</span> Last 14 Days</div>
+        <div class="card" id="cardSparklines">
+          <div class="card-title" onclick="toggleCard('cardSparklines')"><span class="card-icon">📈</span> Last 14 Days <span class="card-chevron">▼</span></div>
+          <div class="card-body">
           <div class="sparkline-row"><span class="sparkline-label">Tinnitus</span><div class="sparkline-svg" id="spark-tinnitus"></div><span class="sparkline-val" id="spark-val-tinnitus">—</span></div>
           <div class="sparkline-row"><span class="sparkline-label">Fullness</span><div class="sparkline-svg" id="spark-earFullness"></div><span class="sparkline-val" id="spark-val-earFullness">—</span></div>
           <div class="sparkline-row"><span class="sparkline-label">Radiation</span><div class="sparkline-svg" id="spark-radiation"></div><span class="sparkline-val" id="spark-val-radiation">—</span></div>
           <div class="sparkline-row"><span class="sparkline-label">Distress</span><div class="sparkline-svg" id="spark-distress"></div><span class="sparkline-val" id="spark-val-distress">—</span></div>
           <div class="sparkline-row"><span class="sparkline-label" style="font-weight:600">Score</span><div class="sparkline-svg" id="spark-score"></div><span class="sparkline-val" id="spark-val-score" style="font-weight:700">—</span></div>
+          </div>
         </div>
-        <div class="card">
-          <div class="card-title"><span class="card-icon">🗓️</span> Recent</div>
-          <div id="recentEntries"><div class="empty-state"><p>No entries yet</p></div></div>
+        <div class="card" id="cardRecent">
+          <div class="card-title" onclick="toggleCard('cardRecent')"><span class="card-icon">🗓️</span> Recent <span class="card-chevron">▼</span></div>
+          <div class="card-body"><div id="recentEntries"><div class="empty-state"><p>No entries yet</p></div></div></div>
         </div>
       </div>
     </div>
@@ -769,7 +777,16 @@ function applyLoadedData(data){
 
 function scheduleSave(){isDirty=true;clearTimeout(saveTimeout);saveTimeout=setTimeout(()=>saveDailyFields(),AUTOSAVE_MS)}
 // Continuous autosave every 3 seconds — never lose data
-setInterval(()=>{const entry=getEntry(currentViewDate);if(entry)saveDailyFields()},3000);
+// Autosave every 3s — also detect day change (midnight rollover or next-day open)
+setInterval(()=>{
+  const today=todayStr();
+  if(currentViewDate!==today&&currentViewDate===APP._lastAutoDate){
+    // Day changed while app was open — reset to today
+    saveDailyFields();currentViewDate=today;loadDayView();
+  }
+  APP._lastAutoDate=currentViewDate;
+  const entry=getEntry(currentViewDate);if(entry)saveDailyFields();
+},3000);
 window.manualSave=async function(){saveDailyFields();showToast('Saved! ('+APP.entries.length+' entries)','success')};
 function updateSaveDot(s){
   const d=document.getElementById('saveDot');if(d)d.className='save-dot '+s;
@@ -914,31 +931,40 @@ function renderMomentTimeline(){
   if(!moments.length){container.innerHTML='<div class="empty-state"><p>No moments logged yet today</p></div>';return}
   container.textContent='';
   const tl=document.createElement('div');tl.className='timeline';
+  const colors={tinnitus:'var(--teal)',earFullness:'var(--blue)',radiation:'var(--violet)',distress:'var(--rose)'};
+  const ini={tinnitus:'T',earFullness:'F',radiation:'R',distress:'D'};
   moments.forEach(m=>{
     const item=document.createElement('div');item.className='timeline-item';
-    const score=getMomentScore(m);const tier=getTierClass(score);
-    const colors={tinnitus:'var(--teal)',earFullness:'var(--blue)',radiation:'var(--violet)',distress:'var(--rose)'};
-    const ini={tinnitus:'T',earFullness:'F',radiation:'R',distress:'D'};
-    const header=document.createElement('div');header.className='tl-header';
+    const score=getMomentScore(m);const tier=getTierClass(score);const total=score||1;
+    // Content column
+    const content=document.createElement('div');content.className='tl-content';
+    // Row 1: time + T7 F5 R3 D3 + score
+    const row1=document.createElement('div');row1.className='tl-row1';
     const timeSpan=document.createElement('span');timeSpan.className='tl-time';timeSpan.textContent=m.time;
-    const detailSpan=document.createElement('span');detailSpan.className='tl-detail';
-    let detailHTML='';FIELDS.forEach(f=>{detailHTML+='<b style="color:'+colors[f]+'">'+ini[f]+'</b>'+m[f]+' '});
-    detailSpan.innerHTML=detailHTML.trim();
-    const stackedDiv=document.createElement('div');stackedDiv.className='tl-stacked';
-    const total=score||1;
-    FIELDS.forEach(f=>{const v=m[f]||0;const seg=document.createElement('div');seg.className='tl-stacked-seg';seg.style.width=Math.max((v/total)*100,0)+'%';seg.style.background=colors[f];stackedDiv.appendChild(seg)});
+    row1.appendChild(timeSpan);
+    const detail=document.createElement('div');detail.className='tl-detail';
+    FIELDS.forEach(f=>{const d=document.createElement('span');d.className='tl-detail-item';d.innerHTML='<b style="color:'+colors[f]+'">'+ini[f]+'</b><span>'+m[f]+'</span>';detail.appendChild(d)});
+    row1.appendChild(detail);
     const scoreSpan=document.createElement('span');scoreSpan.className='tl-score tier-badge '+tier;scoreSpan.textContent=score;
-    header.appendChild(timeSpan);header.appendChild(detailSpan);header.appendChild(stackedDiv);header.appendChild(scoreSpan);
-    item.appendChild(header);
-    if(m.note){const note=document.createElement('div');note.className='tl-note';note.textContent=m.note;item.appendChild(note)}
+    row1.appendChild(scoreSpan);
+    content.appendChild(row1);
+    // Row 2: stacked color bar aligned under the labels
+    const row2=document.createElement('div');row2.className='tl-row2';
+    FIELDS.forEach(f=>{const v=m[f]||0;const seg=document.createElement('div');seg.className='tl-row2-seg';seg.style.width=Math.max((v/total)*100,0)+'%';seg.style.background=colors[f];row2.appendChild(seg)});
+    content.appendChild(row2);
+    // Note
+    if(m.note){const note=document.createElement('div');note.className='tl-note';note.textContent=m.note;content.appendChild(note)}
+    item.appendChild(content);
+    // Actions column (right side, vertically stacked)
     const actions=document.createElement('div');actions.className='tl-actions';
-    const edit=document.createElement('button');edit.className='tl-edit';edit.textContent='✏️';edit.title='Edit moment';
-    const del=document.createElement('button');del.className='tl-delete';del.textContent='×';del.title='Delete moment';
+    const edit=document.createElement('button');edit.className='tl-edit';edit.textContent='✏️';edit.title='Edit';
+    const del=document.createElement('button');del.className='tl-delete';del.textContent='×';del.title='Delete';
     const mid=m.id;
     edit.addEventListener('click',e=>{e.stopPropagation();editMoment(mid)});
     del.addEventListener('click',e=>{e.stopPropagation();deleteMoment(mid)});
     actions.appendChild(edit);actions.appendChild(del);
-    item.appendChild(actions);tl.appendChild(item);
+    item.appendChild(actions);
+    tl.appendChild(item);
   });
   container.appendChild(tl);
 }
@@ -1358,6 +1384,8 @@ async function init(){
   if(!loaded&&storageMode==='none')document.getElementById('setupModal').classList.add('show');
   // Clean up any empty entries from previous browsing
   APP.entries=APP.entries.filter(e=>(e.moments&&e.moments.length)||e.sleepQuality||e.notes||(e.exercises&&e.exercises.length)||(e.medications&&e.medications.length));
+  // ALWAYS start fresh on today's date
+  currentViewDate=todayStr();
   document.getElementById('momentTime').value=nowTime();
   updateMomentPreview();
   loadDayView();
@@ -1369,6 +1397,7 @@ window.addEventListener('beforeunload',()=>saveDailyFields());
 window.addEventListener('pagehide',()=>saveDailyFields());
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')saveDailyFields()});
 window.closeModal=function(id){document.getElementById(id).classList.remove('show')};
+window.toggleCard=function(id){const el=document.getElementById(CSS.escape(id));if(el)el.classList.toggle('collapsed')};
 window.toggleMobileMenu=function(){document.getElementById('mobileMenu').classList.toggle('show')};
 window.closeMobileMenu=function(){document.getElementById('mobileMenu').classList.remove('show')};
 document.addEventListener('click',function(e){if(!e.target.closest('.mobile-menu')&&!e.target.closest('[data-tab="more"]'))closeMobileMenu()});
