@@ -287,6 +287,14 @@ input[data-color="rose"]::-moz-range-thumb{border-color:var(--rose);background:v
 /* ═══ CHART CONTAINERS ═══ */
 .chart-card{background:var(--l1);border:1px solid var(--b1);border-radius:14px;padding:18px;box-shadow:var(--shadow);margin-bottom:14px}
 .chart-card canvas{width:100%!important}
+.chart-card .card-title{display:flex;align-items:center;gap:6px;padding:14px 16px;margin:0;cursor:default}
+.chart-expand{margin-left:auto;background:none;border:1px solid var(--b1);color:var(--t3);width:26px;height:26px;border-radius:6px;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent;transition:all .12s}
+.chart-expand:hover{background:var(--l2);color:var(--t1)}
+/* Fullscreen chart overlay */
+.chart-fullscreen{position:fixed;inset:0;z-index:300;background:var(--bg);padding:16px;display:flex;flex-direction:column;animation:fadeIn .2s ease}
+.chart-fullscreen .fs-close{align-self:flex-end;background:none;border:1px solid var(--b1);color:var(--t2);padding:6px 14px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;margin-bottom:8px;-webkit-tap-highlight-color:transparent}
+.chart-fullscreen .fs-close:hover{background:var(--l2)}
+.chart-fullscreen .fs-content{flex:1;position:relative;min-height:0}
 .chart-controls{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
 .chart-pill{padding:5px 12px;border-radius:6px;border:1px solid var(--b1);background:var(--l2);color:var(--t2);font-size:10.5px;font-weight:500;cursor:pointer;font-family:inherit;transition:all .15s}
 .chart-pill.active{background:var(--blue-g);border-color:var(--blue);color:var(--blue);font-weight:600}
@@ -609,7 +617,7 @@ input[data-color="rose"]::-moz-range-thumb{border-color:var(--rose);background:v
   <section class="tab-content" id="tab-dashboard">
     <div class="kpi-grid" id="kpiGrid"></div>
     <div class="chart-card">
-      <div class="card-title"><span class="card-icon">📈</span> Symptom Trends</div>
+      <div class="card-title"><span class="card-icon">📈</span> Symptom Trends <button class="chart-expand" onclick="expandChart('chartTimeSeries','Symptom Trends')" title="Fullscreen">⛶</button></div>
       <div class="chart-controls" id="trendControls">
         <button class="chart-pill active" data-range="14" onclick="setTrendRange(14,this)">14d</button>
         <button class="chart-pill" data-range="30" onclick="setTrendRange(30,this)">30d</button>
@@ -619,7 +627,7 @@ input[data-color="rose"]::-moz-range-thumb{border-color:var(--rose);background:v
       <div style="position:relative;height:260px"><canvas id="chartTimeSeries"></canvas></div>
     </div>
     <div class="chart-card">
-      <div class="card-title"><span class="card-icon">📅</span> Day of Week</div>
+      <div class="card-title"><span class="card-icon">📅</span> Day of Week <button class="chart-expand" onclick="expandChart('chartDOW','Day of Week')" title="Fullscreen">⛶</button></div>
       <div class="chart-controls" id="dowControls">
         <button class="chart-pill active" data-mode="avg" onclick="setDOWMode('avg',this)">Average</button>
         <button class="chart-pill" data-mode="all" onclick="setDOWMode('all',this)">All Weeks</button>
@@ -627,7 +635,7 @@ input[data-color="rose"]::-moz-range-thumb{border-color:var(--rose);background:v
       <div style="position:relative;height:240px"><canvas id="chartDOW"></canvas></div>
     </div>
     <div class="chart-card">
-      <div class="card-title"><span class="card-icon">😴</span> Sleep vs Symptoms</div>
+      <div class="card-title"><span class="card-icon">😴</span> Sleep vs Symptoms <button class="chart-expand" onclick="expandChart('chartSleepCorr','Sleep vs Symptoms')" title="Fullscreen">⛶</button></div>
       <div style="position:relative;height:240px"><canvas id="chartSleepCorr"></canvas></div>
     </div>
     <div class="chart-card">
@@ -1435,6 +1443,29 @@ document.addEventListener('visibilitychange',()=>{
 });
 window.closeModal=function(id){document.getElementById(id).classList.remove('show')};
 window.toggleCard=function(id){const el=document.getElementById(CSS.escape(id));if(el)el.classList.toggle('collapsed')};
+
+window.expandChart=function(canvasId,title){
+  const origCanvas=document.getElementById(canvasId);if(!origCanvas)return;
+  const chartKey={chartTimeSeries:'trend',chartDOW:'dow',chartSleepCorr:'sleep'}[canvasId];
+  const origChart=chartInstances[chartKey];if(!origChart)return;
+  // Create fullscreen overlay
+  const overlay=document.createElement('div');overlay.className='chart-fullscreen';
+  const close=document.createElement('button');close.className='fs-close';close.textContent='✕ Close';
+  close.addEventListener('click',()=>{if(fsChart)fsChart.destroy();overlay.remove()});
+  const titleEl=document.createElement('div');titleEl.style.cssText='font-size:14px;font-weight:600;margin-bottom:8px;color:var(--t1)';titleEl.textContent=title;
+  const content=document.createElement('div');content.className='fs-content';
+  const canvas=document.createElement('canvas');
+  content.appendChild(canvas);
+  overlay.appendChild(close);overlay.appendChild(titleEl);overlay.appendChild(content);
+  document.body.appendChild(overlay);
+  // Clone chart config
+  const cfg=JSON.parse(JSON.stringify(origChart.config));
+  cfg.options.maintainAspectRatio=false;cfg.options.responsive=true;
+  const fsChart=new Chart(canvas,cfg);
+  // Close on Escape
+  const escHandler=e=>{if(e.key==='Escape'){fsChart.destroy();overlay.remove();document.removeEventListener('keydown',escHandler)}};
+  document.addEventListener('keydown',escHandler);
+};
 window.toggleMobileMenu=function(){document.getElementById('mobileMenu').classList.toggle('show')};
 window.closeMobileMenu=function(){document.getElementById('mobileMenu').classList.remove('show')};
 document.addEventListener('click',function(e){if(!e.target.closest('.mobile-menu')&&!e.target.closest('[data-tab="more"]'))closeMobileMenu()});
@@ -1538,40 +1569,59 @@ function renderSleepChart(entries){
 function renderHeatmap(){
   if(typeof d3==='undefined'){setTimeout(renderHeatmap,200);return}
   const container=document.getElementById('heatmapContainer');container.textContent='';
-  // Use ALL entries, not filtered
   const scoreMap=new Map();
   APP.entries.forEach(e=>{const s=getDaySummary(e);if(s!=null)scoreMap.set(e.date,s)});
-  const cellSize=14,cellPad=2,weeksToShow=13;
-  const today=new Date();const startDate=new Date(today);startDate.setDate(startDate.getDate()-weeksToShow*7);
-  const containerW=container.clientWidth||300;
-  const autoWeeks=Math.min(weeksToShow,Math.floor((containerW-30)/(cellSize+cellPad)));
-  const actualWeeks=Math.max(autoWeeks,4);
-  startDate.setDate(today.getDate()-actualWeeks*7);
-  const w=actualWeeks*(cellSize+cellPad)+32,h=7*(cellSize+cellPad)+20;
-  const svg=d3.select(container).append('svg').attr('width','100%').attr('viewBox','0 0 '+w+' '+h);
-  const days=['S','M','T','W','T','F','S'];
-  svg.selectAll('.dayLabel').data(days).enter().append('text').attr('x',10).attr('y',(d,i)=>i*(cellSize+cellPad)+cellSize+6).text(d=>d).style('font-size','8px').style('text-anchor','middle');
+  const cs=14,gap=3,labelW=22,headerH=16;
   const isDark=document.documentElement.getAttribute('data-theme')==='dark';
   const colorScale=d3.scaleLinear().domain([0,13,26,40]).range(isDark?['#0e3520','#3c2e0a','#3c1414','#7f1d1d']:['#dcfce7','#fef3c7','#fee2e2','#fca5a5']);
   const emptyColor=isDark?'#1c2231':'#f0f2f7';
   const borderColor=isDark?'#252d40':'#e4e7ef';
-  const cells=[];
-  for(let i=0;i<=actualWeeks*7;i++){
-    const d=new Date(startDate);d.setDate(d.getDate()+i);
-    if(d>today)break;
-    const ds=dateToLocal(d);const week=Math.floor(i/7);const dow=d.getDay();
-    cells.push({date:ds,week,dow,score:scoreMap.get(ds)??null});
+  const textColor=isDark?'#5a657e':'#9ca3af';
+  // Build grid: go back from today to fill weeks ending on today
+  const today=new Date();
+  const todayDow=today.getDay(); // 0=Sun
+  // Start from the Monday 12 weeks ago
+  const weeksBack=12;
+  const startDate=new Date(today);
+  startDate.setDate(today.getDate()-todayDow-weeksBack*7+1); // Go to Monday weeksBack weeks ago
+  const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const dayLabels=['M','T','W','T','F','S','S'];
+  // Build cells: Mon=row0 ... Sun=row6
+  const cells=[];const monthHeaders=new Map();
+  let weekCol=0,lastMonth=-1;
+  for(let d=new Date(startDate);d<=today;){
+    const dow=(d.getDay()+6)%7; // Mon=0, Sun=6
+    if(dow===0&&cells.length>0)weekCol++;
+    const ds=dateToLocal(d);
+    const mo=d.getMonth();
+    if(mo!==lastMonth){monthHeaders.set(weekCol,months[mo]);lastMonth=mo}
+    cells.push({date:ds,col:weekCol,row:dow,score:scoreMap.get(ds)??null});
+    d.setDate(d.getDate()+1);
   }
+  const totalCols=weekCol+1;
+  const w=labelW+totalCols*(cs+gap)+4;
+  const h=headerH+7*(cs+gap)+4;
+  const svg=d3.select(container).append('svg').attr('width','100%').attr('viewBox','0 0 '+w+' '+h).style('max-width',w+'px');
+  // Month headers
+  monthHeaders.forEach((name,col)=>{
+    svg.append('text').attr('x',labelW+col*(cs+gap)+cs/2).attr('y',11).text(name).style('font-size','8px').style('fill',textColor).style('text-anchor','start').style('font-family','Inter,system-ui,sans-serif');
+  });
+  // Day labels (Mon-Sun)
+  dayLabels.forEach((d,i)=>{
+    if(i%2===0)svg.append('text').attr('x',labelW-4).attr('y',headerH+i*(cs+gap)+cs-2).text(d).style('font-size','8px').style('fill',textColor).style('text-anchor','end').style('font-family','Inter,system-ui,sans-serif');
+  });
+  // Cells
   svg.selectAll('.cell').data(cells).enter().append('rect')
-    .attr('x',d=>d.week*(cellSize+cellPad)+24)
-    .attr('y',d=>d.dow*(cellSize+cellPad)+2)
-    .attr('width',cellSize).attr('height',cellSize)
+    .attr('x',d=>labelW+d.col*(cs+gap))
+    .attr('y',d=>headerH+d.row*(cs+gap))
+    .attr('width',cs).attr('height',cs)
     .attr('rx',3).attr('ry',3)
     .attr('fill',d=>d.score!=null?colorScale(d.score):emptyColor)
-    .attr('stroke',d=>d.score!=null?'none':borderColor)
-    .attr('stroke-width',.5)
+    .attr('stroke',d=>d.score!=null?colorScale(d.score):borderColor)
+    .attr('stroke-width',d=>d.score!=null?1:.5)
     .style('cursor','pointer')
-    .append('title').text(d=>d.date+(d.score!=null?' — Score: '+d.score:' — No entry'));
+    .on('click',function(ev,d){if(d.date<=dateToLocal(new Date())){saveDailyFields();currentViewDate=d.date;loadDayView();switchTab('today')}})
+    .append('title').text(d=>{const dayNames=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];return dayNames[d.row]+' '+d.date+(d.score!=null?' — Score: '+d.score:'')});
 }
 
 // ═══ 19. INSIGHTS ENGINE ═══
