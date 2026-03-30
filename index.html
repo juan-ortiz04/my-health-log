@@ -639,15 +639,22 @@ input[data-color="rose"]::-moz-range-thumb{border-color:var(--rose);background:v
       <div style="position:relative;height:240px"><canvas id="chartSleepCorr"></canvas></div>
     </div>
     <div class="chart-card">
-      <div class="card-title"><span class="card-icon">🗓️</span> Calendar Heatmap</div>
-      <div id="heatmapContainer"></div>
-      <div id="heatmapLegend" style="display:flex;align-items:center;gap:6px;margin-top:8px;font-size:10px;color:var(--t3)">
-        <span>Low</span>
-        <div style="display:flex;height:10px;border-radius:3px;overflow:hidden;width:120px">
+      <div class="card-title"><span class="card-icon">🗓️</span> Calendar Heatmap <button class="chart-expand" onclick="expandHeatmap()" title="Fullscreen">⛶</button></div>
+      <div class="chart-controls" id="heatmapControls">
+        <button class="chart-pill" data-weeks="4" onclick="setHeatmapWeeks(4,this)">4w</button>
+        <button class="chart-pill active" data-weeks="13" onclick="setHeatmapWeeks(13,this)">13w</button>
+        <button class="chart-pill" data-weeks="26" onclick="setHeatmapWeeks(26,this)">26w</button>
+        <button class="chart-pill" data-weeks="52" onclick="setHeatmapWeeks(52,this)">1y</button>
+      </div>
+      <div id="heatmapContainer" style="overflow-x:auto"></div>
+      <div style="display:flex;align-items:center;gap:6px;margin-top:8px;font-size:10px;color:var(--t3);flex-wrap:wrap">
+        <span>Mild</span>
+        <div style="display:flex;height:10px;border-radius:3px;overflow:hidden;width:100px">
           <div style="flex:1;background:#dcfce7"></div><div style="flex:1;background:#fef3c7"></div><div style="flex:1;background:#fee2e2"></div><div style="flex:1;background:#fca5a5"></div>
         </div>
-        <span>High</span>
-        <span style="margin-left:8px">● = entry</span>
+        <span>Severe</span>
+        <span style="margin-left:6px;color:var(--t3)">□ = no entry</span>
+        <span style="margin-left:6px">Tap a day to view</span>
       </div>
     </div>
   </section>
@@ -1585,49 +1592,71 @@ function renderSleepChart(entries){
   chartInstances.sleep=new Chart(canvas,{type:'scatter',data:{datasets:[{label:'Sleep vs Score',data:pairs,backgroundColor:colors,pointRadius:6,pointHoverRadius:8}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},subtitle:{display:r!==null,text:'Correlation: r = '+(r||0).toFixed(2),font:{size:11},color:'var(--t3)'}},scales:{x:{title:{display:true,text:'Sleep Quality',font:{size:10}},min:-0.5,max:10.5,ticks:{callback:v=>SQ_REVERSE[v]||'',font:{size:9}},grid:{display:false}},y:{title:{display:true,text:'Symptom Score',font:{size:10}},min:0,max:40,grid:{color:'rgba(0,0,0,.05)'}}}}});
 }
 
-function renderHeatmap(){
-  if(typeof d3==='undefined'){setTimeout(renderHeatmap,200);return}
-  const container=document.getElementById('heatmapContainer');container.textContent='';
+let heatmapWeeks=13;
+window.setHeatmapWeeks=function(w,btn){heatmapWeeks=w;document.querySelectorAll('#heatmapControls .chart-pill').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderHeatmap()};
+window.expandHeatmap=function(){
+  const overlay=document.createElement('div');overlay.className='chart-fullscreen';
+  const close=document.createElement('button');close.className='fs-close';close.textContent='✕ Close';
+  function closeFS(){overlay.remove();document.removeEventListener('keydown',escH)}
+  const escH=e=>{if(e.key==='Escape')closeFS()};document.addEventListener('keydown',escH);
+  close.addEventListener('click',closeFS);
+  const titleEl=document.createElement('div');titleEl.style.cssText='font-size:14px;font-weight:600;margin-bottom:8px;color:var(--t1)';titleEl.textContent='Calendar Heatmap';
+  const content=document.createElement('div');content.className='fs-content';content.style.overflow='auto';content.id='heatmapFS';
+  overlay.appendChild(close);overlay.appendChild(titleEl);overlay.appendChild(content);
+  document.body.appendChild(overlay);
+  renderHeatmapInto(content,52);
+};
+
+function renderHeatmap(){renderHeatmapInto(document.getElementById('heatmapContainer'),heatmapWeeks)}
+
+function renderHeatmapInto(container,weeksBack){
+  if(typeof d3==='undefined'){setTimeout(()=>renderHeatmapInto(container,weeksBack),200);return}
+  container.textContent='';
   const scoreMap=new Map();
   APP.entries.forEach(e=>{const s=getDaySummary(e);if(s!=null)scoreMap.set(e.date,s)});
-  const cs=14,gap=3,labelW=22,headerH=16;
+  const cs=16,gap=3,labelW=24,headerH=18;
   const isDark=document.documentElement.getAttribute('data-theme')==='dark';
   const colorScale=d3.scaleLinear().domain([0,13,26,40]).range(isDark?['#0e3520','#3c2e0a','#3c1414','#7f1d1d']:['#dcfce7','#fef3c7','#fee2e2','#fca5a5']);
   const emptyColor=isDark?'#1c2231':'#f0f2f7';
   const borderColor=isDark?'#252d40':'#e4e7ef';
   const textColor=isDark?'#5a657e':'#9ca3af';
-  // Build grid: go back from today to fill weeks ending on today
-  const today=new Date();
-  const todayDow=today.getDay(); // 0=Sun
-  // Start from the Monday 12 weeks ago
-  const weeksBack=12;
-  const startDate=new Date(today);
-  startDate.setDate(today.getDate()-todayDow-weeksBack*7+1); // Go to Monday weeksBack weeks ago
   const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   const dayLabels=['M','T','W','T','F','S','S'];
-  // Build cells: Mon=row0 ... Sun=row6
+  // End on today, go back weeksBack weeks, snap to Monday
+  const today=new Date();
+  const end=new Date(today);
+  const start=new Date(today);
+  start.setDate(today.getDate()-(weeksBack*7));
+  // Snap start to Monday
+  const startDow=(start.getDay()+6)%7;
+  start.setDate(start.getDate()-startDow);
+  // Build cells
   const cells=[];const monthHeaders=new Map();
-  let weekCol=0,lastMonth=-1;
-  for(let d=new Date(startDate);d<=today;){
-    const dow=(d.getDay()+6)%7; // Mon=0, Sun=6
-    if(dow===0&&cells.length>0)weekCol++;
+  let col=0,lastMonth=-1,prevMon=true;
+  for(let d=new Date(start);d<=end;d.setDate(d.getDate()+1)){
+    const dow=(d.getDay()+6)%7; // Mon=0
+    if(dow===0&&cells.length>0)col++;
     const ds=dateToLocal(d);
     const mo=d.getMonth();
-    if(mo!==lastMonth){monthHeaders.set(weekCol,months[mo]);lastMonth=mo}
-    cells.push({date:ds,col:weekCol,row:dow,score:scoreMap.get(ds)??null});
-    d.setDate(d.getDate()+1);
+    if(mo!==lastMonth){monthHeaders.set(col,months[mo]+(d.getDate()<=7?' '+d.getFullYear():''));lastMonth=mo}
+    const isFuture=d>today;
+    cells.push({date:ds,col,row:dow,score:isFuture?null:scoreMap.get(ds)??null,future:isFuture});
   }
-  const totalCols=weekCol+1;
-  const w=labelW+totalCols*(cs+gap)+4;
+  const totalCols=col+1;
+  const w=labelW+totalCols*(cs+gap)+8;
   const h=headerH+7*(cs+gap)+4;
-  const svg=d3.select(container).append('svg').attr('width','100%').attr('viewBox','0 0 '+w+' '+h).style('max-width',w+'px');
-  // Month headers
-  monthHeaders.forEach((name,col)=>{
-    svg.append('text').attr('x',labelW+col*(cs+gap)+cs/2).attr('y',11).text(name).style('font-size','8px').style('fill',textColor).style('text-anchor','start').style('font-family','Inter,system-ui,sans-serif');
+  const svg=d3.select(container).append('svg').attr('width',w).attr('height',h);
+  // Month + year headers
+  monthHeaders.forEach((name,c)=>{
+    svg.append('text').attr('x',labelW+c*(cs+gap)).attr('y',12).text(name)
+      .style('font-size','9px').style('fill',textColor).style('font-weight','500')
+      .style('font-family','Inter,system-ui,sans-serif');
   });
-  // Day labels (Mon-Sun)
+  // Day labels — all 7
   dayLabels.forEach((d,i)=>{
-    if(i%2===0)svg.append('text').attr('x',labelW-4).attr('y',headerH+i*(cs+gap)+cs-2).text(d).style('font-size','8px').style('fill',textColor).style('text-anchor','end').style('font-family','Inter,system-ui,sans-serif');
+    svg.append('text').attr('x',labelW-5).attr('y',headerH+i*(cs+gap)+cs-3).text(d)
+      .style('font-size','9px').style('fill',textColor).style('text-anchor','end')
+      .style('font-family','Inter,system-ui,sans-serif');
   });
   // Cells
   svg.selectAll('.cell').data(cells).enter().append('rect')
@@ -1635,12 +1664,12 @@ function renderHeatmap(){
     .attr('y',d=>headerH+d.row*(cs+gap))
     .attr('width',cs).attr('height',cs)
     .attr('rx',3).attr('ry',3)
-    .attr('fill',d=>d.score!=null?colorScale(d.score):emptyColor)
-    .attr('stroke',d=>d.score!=null?colorScale(d.score):borderColor)
-    .attr('stroke-width',d=>d.score!=null?1:.5)
-    .style('cursor','pointer')
-    .on('click',function(ev,d){if(d.date<=dateToLocal(new Date())){saveDailyFields();currentViewDate=d.date;loadDayView();switchTab('today')}})
-    .append('title').text(d=>{const dayNames=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];return dayNames[d.row]+' '+d.date+(d.score!=null?' — Score: '+d.score:'')});
+    .attr('fill',d=>d.future?'transparent':d.score!=null?colorScale(d.score):emptyColor)
+    .attr('stroke',d=>d.future?'transparent':d.score!=null?colorScale(d.score):borderColor)
+    .attr('stroke-width',d=>d.score!=null?1.5:.5)
+    .style('cursor',d=>d.future?'default':'pointer')
+    .on('click',function(ev,d){if(!d.future&&d.date<=dateToLocal(new Date())){saveDailyFields();currentViewDate=d.date;loadDayView();switchTab('today')}})
+    .append('title').text(d=>{if(d.future)return'';const dn=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];return dn[d.row]+' '+d.date+(d.score!=null?' — Score: '+d.score:' — No entry')});
 }
 
 // ═══ 19. INSIGHTS ENGINE ═══
